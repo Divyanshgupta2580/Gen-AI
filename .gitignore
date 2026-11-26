@@ -1,0 +1,25 @@
+# Virtual Environments
+.venv
+.venv/
+venv
+venv/
+ENV/
+env/
+
+# Secrets & Local Configurations
+.env
+*.env
+!.env.example
+
+# Local Persistent Database (generated locally from PDF)
+chroma_db/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# OS Specific
+.DS_Store
+Thumbs.db
