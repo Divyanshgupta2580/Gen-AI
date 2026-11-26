@@ -1,0 +1,26 @@
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment and Secret Files
+.env
+.env.local
+.env.*.local
+
+# Application Data & Persistence Stores
+data/chroma_db/
+data/cache/
+*.joblib
+
+# OS metadata
+.DS_Store
+Thumbs.db
