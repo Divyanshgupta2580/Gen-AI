@@ -1,0 +1,20 @@
+# Python virtual environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Vector database local cache
+vector_store/
+vector_store*/
+uploads/
+
+# OS artifacts
+.DS_Store
+Thumbs.db

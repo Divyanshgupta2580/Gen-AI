@@ -1,0 +1,6 @@
+# RAG Ingestion Pipeline & Chatbot Dependencies
+chromadb>=0.6.0
+onnxruntime>=1.14.0
+numpy>=1.22.0
+pillow>=10.0.0
+opencv-python>=4.8.0

@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiverse™ | The Quantum Spatial & Multi-Dimensional Reality Engine</title>
+  <meta name="description" content="Cinematic 3D reveal and technical showcase of Multiverse™: the next-generation spatial computing and quantum parallel reality engine. Experience scroll-linked dimensional wormholes and interactive RAG document intelligence.">
+
+  <!-- Inter & SF Pro Display font styling -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Three.js for Interactive 3D WebGL Universe -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Lucide icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root {
+      --bg-primary: #030307;
+      --bg-secondary: #080912;
+      --bg-panel: rgba(10, 12, 22, 0.82);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 225, 255, 0.4);
+      --accent-cyan: #00e1ff;
+      --accent-violet: #8a3ffc;
+      --accent-blue: #0062ff;
+      --accent-gradient: linear-gradient(135deg, #0062ff 0%, #00e1ff 50%, #8a3ffc 100%);
+      --text-glow: 0 0 35px rgba(0, 225, 255, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: #ffffff;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+      selection-background-color: #00e1ff;
+      selection-color: #000;
+    }
+
+    ::selection {
+      background: rgba(0, 225, 255, 0.3);
+      color: #ffffff;
+    }
+
+    /* Ambient background glows */
+    .ambient-glow-1 {
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80vw;
+      height: 70vh;
+      background: radial-gradient(circle, rgba(0, 98, 255, 0.08) 0%, rgba(138, 63, 252, 0.05) 35%, rgba(0, 225, 255, 0.02) 60%, transparent 80%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Glassmorphism utility */
+    .glass-nav {
+      background: rgba(4, 5, 10, 0.82);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .glass-card {
+      background: rgba(10, 13, 24, 0.72);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Custom typography gradients */
+    .text-gradient {
+      background: linear-gradient(180deg, #ffffff 20%, rgba(255, 255, 255, 0.65) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .text-gradient-cyan {
+      background: linear-gradient(135deg, #ffffff 0%, #00e1ff 60%, #8a3ffc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .btn-gradient {
+      background: var(--accent-gradient);
+      color: #030307;
+      font-weight: 700;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 25px rgba(0, 225, 255, 0.35);
+    }
+
+    .btn-gradient:hover {
+      box-shadow: 0 0 35px rgba(0, 225, 255, 0.65);
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 225, 255, 0.1);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* Story beat overlay states */
+    .story-beat {
+      opacity: 0;
+      transform: translateY(24px) scale(0.98);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    .story-beat.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #030307;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 225, 255, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 225, 255, 0.6);
+    }
+
+    /* Glowing pulse animation */
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.04); }
+    }
+    .animate-pulse-glow {
+      animation: pulseGlow 4s ease-in-out infinite;
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-float {
+      animation: floatSlow 5s ease-in-out infinite;
+    }
+  </style>
+</head>
+
+<body class="relative">
+
+  <div class="ambient-glow-1"></div>
+
+  <!-- ========================================================== -->
+  <!-- NAVIGATION BAR -->
+  <!-- ========================================================== -->
+  <header id="navbar" class="fixed top-0 left-0 w-full z-40 glass-nav transition-all duration-300 px-6 sm:px-12 py-3.5 flex items-center justify-between">
+    <!-- Brand / Product Identity -->
+    <div class="flex items-center gap-3.5 cursor-pointer" onclick="scrollToProgress(0)">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-cyan-400 to-violet-500 p-[1.5px] shadow-[0_0_20px_rgba(0,225,255,0.4)]">
+        <div class="w-full h-full bg-[#030307] rounded-[10px] flex items-center justify-center">
+          <i data-lucide="globe" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-sm font-black tracking-widest text-white flex items-center gap-1.5">
+          MULTIVERSE<span class="text-cyan-400 text-xs font-mono">™</span>
+        </span>
+        <span class="text-[10px] tracking-wider uppercase text-cyan-300/70 font-mono">Quantum Reality Engine</span>
+      </div>
+      <span class="hidden lg:inline-flex items-center gap-1.5 ml-2 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+        v4.2-Quantum Superposition
+      </span>
+    </div>
+
+    <!-- Center Navigation Links -->
+    <nav class="hidden md:flex items-center gap-7 text-[13px] font-medium text-white/70">
+      <a href="#overview" class="hover:text-cyan-300 transition" onclick="scrollToProgress(0.04)">3D Portal</a>
+      <a href="#quantum-core" class="hover:text-cyan-300 transition" onclick="scrollToProgress(0.28)">Quantum Core</a>
+      <a href="#wormholes" class="hover:text-cyan-300 transition" onclick="scrollToProgress(0.52)">Wormhole DPTP</a>
+      <a href="#3d-explorer" class="hover:text-cyan-300 transition" onclick="scrollTo3DSection()">3D Universe</a>
+      <button onclick="openSpecsModal()" class="hover:text-cyan-300 transition">Specs</button>
+      <button onclick="openRAGModal()" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-900/80 hover:text-white transition shadow-sm">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span>RAG Chatbot Studio</span>
+      </button>
+    </nav>
+
+    <!-- Right Action CTAs -->
+    <div class="flex items-center gap-3">
+      <button onclick="openRAGModal()" class="md:hidden flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/80 text-cyan-300 border border-cyan-500/40">
+        <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+        <span>RAG Chat</span>
+      </button>
+      <button onclick="toggleQuickChat()" class="btn-gradient text-xs px-4 py-2 rounded-full tracking-tight flex items-center gap-1.5">
+        <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+        <span>Ask Multiverse AI</span>
+      </button>
+    </div>
+  </header>
+
+
+  <!-- ========================================================== -->
+  <!-- MAIN SCROLLYTELLING 3D PORTAL CONTAINER (~460vh scroll distance) -->
+  <!-- ========================================================== -->
+  <main id="scrolly-container" class="relative w-full" style="height: 460vh;">
+
+    <!-- STICKY FULLSCREEN 3D CANVAS WRAPPER -->
+    <div class="sticky top-0 left-0 w-full h-screen overflow-hidden flex items-center justify-center bg-[#030307]">
+      
+      <!-- 3D Canvas Frame Engine (Clean 20-frame journey through dimensional wormhole) -->
+      <canvas id="product-canvas" class="relative z-10 w-full h-full object-contain pointer-events-none" style="background-color: #030307;"></canvas>
+
+      <!-- Sub-ambient radial cosmic glow behind canvas -->
+      <div class="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
+        <div id="radial-glow" class="w-[75vw] h-[75vh] rounded-full bg-gradient-to-tr from-blue-900/15 via-cyan-900/10 to-violet-900/15 blur-[130px] transition-all duration-700"></div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- STORYTELLING OVERLAYS (SYNCHRONIZED WITH 3D TRAVERSAL) -->
+      <!-- ======================================================== -->
+
+      <!-- BEAT 1: HERO / INTRO (0% – 18%) -->
+      <div id="beat-1" class="story-beat active absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
+        <div class="max-w-3xl flex flex-col items-center">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono tracking-wide bg-white/5 border border-white/10 text-cyan-300 mb-6 backdrop-blur-md">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            Multiverse™ Reality Engine &bull; Version 4.2
+          </div>
+          <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gradient leading-[1.08] mb-4">
+            Infinite Parallel Realities.
+          </h1>
+          <p class="text-xl sm:text-2xl lg:text-3xl font-light text-gradient-cyan tracking-tight mb-6">
+            Zero latency. Fully grounded in RAG.
+          </p>
+          <p class="max-w-xl text-sm sm:text-base text-white/70 font-normal leading-relaxed mb-8">
+            Step through the Einstein-Rosen wormhole bridge. Explore parallel quantum realities, 16K per-eye holographic fields, and query the multidimensional intelligence using RAG.
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-4 pointer-events-auto">
+            <button onclick="scrollToProgress(0.28)" class="btn-gradient text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2">
+              <span>Traverse Multiverse</span>
+              <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </button>
+            <button onclick="openRAGModal()" class="btn-outline text-xs sm:text-sm px-5 py-3 rounded-full flex items-center gap-2">
+              <i data-lucide="bot" class="w-4 h-4 text-cyan-400"></i>
+              <span>Launch RAG Chatbot</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/50 text-xs">
+          <span class="tracking-widest uppercase text-[10px] font-mono text-cyan-400">Scroll to Enter Wormhole</span>
+          <div class="w-5 h-9 rounded-full border border-white/20 flex items-start justify-center p-1">
+            <div class="w-1.5 h-2.5 rounded-full bg-cyan-400 animate-bounce"></div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- BEAT 2: QUANTUM COMPUTING CORE (18% – 42%) -->
+      <div id="beat-2" class="story-beat absolute inset-0 z-20 flex items-center px-6 sm:px-16 lg:px-24 pointer-events-none">
+        <div class="max-w-md lg:max-w-lg pointer-events-auto">
+          <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/15 rounded-full blur-2xl"></div>
+            
+            <div class="flex items-center gap-2 text-xs font-semibold text-cyan-400 tracking-wider uppercase mb-3 font-mono">
+              <i data-lucide="cpu" class="w-4 h-4"></i> Milestone 01 &bull; Helios-Q9 Silicon
+            </div>
+            <h2 class="text-2xl sm:text-4xl font-bold tracking-tight text-white mb-4 leading-tight">
+              Dual Quantum-Photonic Processors.
+            </h2>
+            <p class="text-sm sm:text-base text-white/70 leading-relaxed mb-4">
+              4,200 TFLOPS of FP16 spatial compute and 128 logical qubits running in continuous temporal superposition.
+            </p>
+            <p class="text-xs sm:text-sm text-white/50 leading-relaxed mb-6">
+              Simulates 1,024 parallel universe branches concurrently. Von Neumann-Lüders measurement operators allow seamless timeline inspection with zero frame drops.
+            </p>
+
+            <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/10 text-xs font-mono">
+              <div>
+                <span class="text-white/40 block text-[10px]">Compute Density</span>
+                <span class="font-bold text-white text-sm">4,200 TFLOPS</span>
+              </div>
+              <div>
+                <span class="text-white/40 block text-[10px]">Temporal Superposition</span>
+                <span class="font-bold text-cyan-300 text-sm">128 Qubits</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- BEAT 3: WORMHOLE DPTP PROTOCOL (42% – 68%) -->
+      <div id="beat-3" class="story-beat absolute inset-0 z-20 flex items-center justify-end px-6 sm:px-16 lg:px-24 pointer-events-none">
+        <div class="max-w-md lg:max-w-lg pointer-events-auto">
+          <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+            <div class="absolute -top-10 -left-10 w-40 h-40 bg-cyan-600/15 rounded-full blur-2xl"></div>
+
+            <div class="flex items-center gap-2 text-xs font-semibold text-cyan-400 tracking-wider uppercase mb-3 font-mono">
+              <i data-lucide="activity" class="w-4 h-4"></i> Milestone 02 &bull; Dimensional DPTP
+            </div>
+            <h2 class="text-2xl sm:text-4xl font-bold tracking-tight text-white mb-4 leading-tight">
+              Sub-0.3ms Portal Interconnects.
+            </h2>
+            <p class="text-sm sm:text-base text-white/70 leading-relaxed mb-4">
+              Non-Euclidean spatial manifolds fold hyper-dimensional coordinates to link disparate universes instantly.
+            </p>
+            <p class="text-xs sm:text-sm text-white/50 leading-relaxed mb-6">
+              Real-time Kerr metric photon spheres and relativistic gravitational lensing rendered directly on compute shaders with dynamic lightfield displacement.
+            </p>
+
+            <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/10 text-xs font-mono">
+              <div>
+                <span class="text-white/40 block text-[10px]">Portal Latency</span>
+                <span class="font-bold text-cyan-400 text-sm">&lt; 1.2ms RTT</span>
+              </div>
+              <div>
+                <span class="text-white/40 block text-[10px]">Lightfield Bandwidth</span>
+                <span class="font-bold text-white text-sm">1.2 Gbps Dynamic</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- BEAT 4: CROSS-DIMENSIONAL RAG & SPATIAL MEMORY (68% – 100%) -->
+      <div id="beat-4" class="story-beat absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
+        <div class="max-w-3xl flex flex-col items-center pointer-events-auto">
+          <div class="glass-card rounded-3xl p-8 sm:p-12 relative overflow-hidden w-full border border-cyan-500/30">
+            <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none"></div>
+
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 mb-4">
+              <i data-lucide="database" class="w-3.5 h-3.5"></i>
+              Milestone 03 &bull; Grounded Semantic Intelligence
+            </div>
+
+            <h2 class="text-3xl sm:text-5xl font-extrabold text-white mb-4 tracking-tight">
+              Cross-Dimensional RAG Engine.
+            </h2>
+            <p class="max-w-xl mx-auto text-sm sm:text-base text-white/70 mb-8 leading-relaxed">
+              Every timeline branch, architectural specification, and spatial interaction is indexed into a 384-dimensional persistent vector graph powered by ChromaDB and HC-SW chunking.
+            </p>
+
+            <div class="flex flex-wrap items-center justify-center gap-4">
+              <button onclick="openRAGModal()" class="btn-gradient px-8 py-3.5 rounded-full text-xs sm:text-sm flex items-center gap-2 font-bold shadow-lg">
+                <i data-lucide="bot" class="w-4 h-4"></i>
+                <span>Open Multiverse RAG Studio</span>
+              </button>
+              <button onclick="scrollTo3DSection()" class="btn-outline px-6 py-3.5 rounded-full text-xs sm:text-sm flex items-center gap-2">
+                <i data-lucide="box" class="w-4 h-4 text-cyan-400"></i>
+                <span>Explore Interactive 3D WebGL</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- HUD OVERLAYS (STATIONARY ON 3D SCREEN) -->
+    <div class="fixed bottom-6 left-6 z-30 pointer-events-auto">
+      <div class="glass-card px-4 py-2.5 rounded-xl flex items-center gap-3 text-xs font-mono border border-white/10">
+        <div class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></div>
+        <span id="frame-indicator" class="text-cyan-300 font-bold">Portal Sequence 01 / 20</span>
+        <span class="text-white/20">|</span>
+        <button id="autoplay-btn" onclick="toggleAutoPlay()" class="hover:text-cyan-400 transition text-[11px] text-white/60">
+          ▶ Auto-Warp
+        </button>
+      </div>
+    </div>
+
+    <!-- Right HUD: Quantum Resonance Frequency Monitor -->
+    <div class="fixed bottom-6 right-6 z-30 pointer-events-auto hidden sm:flex items-center gap-3">
+      <div class="glass-card px-4 py-2.5 rounded-xl flex items-center gap-3 text-xs font-mono border border-white/10">
+        <span class="text-[10px] text-white/50 uppercase">Quantum Resonance:</span>
+        <canvas id="freq-canvas" width="80" height="24" class="opacity-80"></canvas>
+        <span class="text-cyan-400 font-bold text-[11px]">240 Hz Entangled</span>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- ========================================================== -->
+  <!-- SECTION: REAL-TIME INTERACTIVE 3D WEBGL UNIVERSE (Three.js) -->
+  <!-- ========================================================== -->
+  <section id="three-section" class="relative z-30 py-24 px-6 sm:px-12 bg-[#04060e] border-t border-b border-white/10">
+    <div class="max-w-7xl mx-auto">
+      
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 mb-3">
+            <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
+            Real-Time WebGL 3D Engine
+          </div>
+          <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight">
+            Interactive 3D Multiverse Explorer
+          </h2>
+          <p class="text-sm sm:text-base text-white/60 mt-2 max-w-xl">
+            Drag to rotate and explore the 3D quantum nodal graph in real time. Watch dimensional stargates pulse with entangled particle streams connecting parallel worlds.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="glass-pill px-3 py-1.5 rounded-xl text-xs font-mono text-cyan-300 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span id="active-dimension-name">Prime Dimension 01</span>
+          </div>
+          <button onclick="reset3DCamera()" class="btn-outline px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>Reset View</span>
+          </button>
+          <button onclick="warpRandomDimension()" class="btn-gradient px-4 py-1.5 rounded-xl text-xs flex items-center gap-1.5 font-bold">
+            <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
+            <span>Jump Reality</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3D WebGL Canvas Container with Interactive Overlay -->
+      <div class="relative w-full h-[65vh] rounded-3xl overflow-hidden border border-cyan-500/30 shadow-[0_20px_70px_rgba(0,0,0,0.8)] bg-black/60">
+        <!-- Three.js Canvas Element -->
+        <canvas id="three-canvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+
+        <!-- Interactive 3D Control Pill Overlay -->
+        <div class="absolute top-4 left-4 glass-card px-4 py-2.5 rounded-2xl flex items-center gap-3 text-xs font-mono border border-white/10 pointer-events-auto">
+          <span class="text-white/40">3D Interaction:</span>
+          <span class="text-cyan-300">Left-Click + Drag to Orbit</span>
+          <span class="text-white/20">&bull;</span>
+          <span class="text-violet-300">Scroll to Zoom</span>
+        </div>
+
+        <!-- Dimension Selector Overlay -->
+        <div class="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+          <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono border border-white/10 pointer-events-auto">
+            <span class="text-white/40">Entities:</span>
+            <span class="text-white font-bold">1,024 Parallel Nodes</span>
+            <span class="text-white/20">&bull;</span>
+            <span class="text-white/40">Cosmic Particles:</span>
+            <span class="text-cyan-400 font-bold">1,800 Entangled</span>
+          </div>
+
+          <div class="glass-card px-4 py-2 rounded-xl flex items-center gap-3 text-xs font-mono border border-white/10 pointer-events-auto">
+            <span class="text-white/40">Warp Speed:</span>
+            <input id="warp-speed" type="range" min="1" max="5" value="2" oninput="changeWarpSpeed(this.value)" class="w-24 accent-cyan-400 cursor-pointer">
+            <span id="warp-speed-val" class="text-cyan-300 font-bold">2.0x</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ========================================================== -->
+  <!-- SECTION: MULTIVERSE HARDWARE & ARCHITECTURE SPECIFICATIONS -->
+  <!-- ========================================================== -->
+  <section id="specs" class="relative z-30 py-24 px-6 sm:px-12 bg-[#030307]">
+    <div class="max-w-7xl mx-auto">
+      
+      <div class="text-center max-w-2xl mx-auto mb-16">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 mb-3">
+          <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+          Technical Validation
+        </div>
+        <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight">
+          Multiverse™ Technical Specifications
+        </h2>
+        <p class="text-sm sm:text-base text-white/60 mt-3">
+          Aerospace materials, quantum photonics, and acoustic levitation haptics verified across 10,000+ simulation hours.
+        </p>
+      </div>
+
+      <!-- Specs Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Card 1 -->
+        <div class="glass-card p-6 rounded-2xl border border-white/10 hover:border-cyan-500/40 transition group">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+            <i data-lucide="cpu" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1">Dual Helios-Q9 Silicon</h3>
+          <p class="text-xs text-white/50 mb-4 leading-relaxed">4,200 TFLOPS FP16 compute & 128 logical superposition qubits for temporal state trees.</p>
+          <div class="text-xs font-mono text-cyan-300 pt-3 border-t border-white/5">
+            Cryogenic Micro-Fluidic 45W
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="glass-card p-6 rounded-2xl border border-white/10 hover:border-cyan-500/40 transition group">
+          <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+            <i data-lucide="eye" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1">32K Photonic Waveguides</h3>
+          <p class="text-xs text-white/50 mb-4 leading-relaxed">16,384 x 16,384 resolution per eye (32K combined) at 240 Hz with ultra-wide 175° FOV.</p>
+          <div class="text-xs font-mono text-cyan-300 pt-3 border-t border-white/5">
+            Sub-millimeter Foveated Optic
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="glass-card p-6 rounded-2xl border border-white/10 hover:border-cyan-500/40 transition group">
+          <div class="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+            <i data-lucide="hand" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1">Acoustic Levitation Haptics</h3>
+          <p class="text-xs text-white/50 mb-4 leading-relaxed">10 kHz ultrasound acoustic transducer field delivering physical tactile feedback without gloves.</p>
+          <div class="text-xs font-mono text-cyan-300 pt-3 border-t border-white/5">
+            Non-Invasive Air Feedback
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="glass-card p-6 rounded-2xl border border-white/10 hover:border-cyan-500/40 transition group">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
+            <i data-lucide="battery-charging" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1">210g Chassis & 14h Battery</h3>
+          <p class="text-xs text-white/50 mb-4 leading-relaxed">Aerospace magnesium-lithium alloy with magnetic occipital balance and solid-state graphene cells.</p>
+          <div class="text-xs font-mono text-cyan-300 pt-3 border-t border-white/5">
+            Featherlight Ergonomics
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ========================================================== -->
+  <!-- FLOATING 3D HOLOGRAPHIC RAG CHATBOT DOCK (Bottom Right) -->
+  <!-- ========================================================== -->
+  <div class="fixed bottom-6 right-6 z-40 flex flex-col items-end pointer-events-auto">
+    
+    <!-- Quick-Chat Drawer Window -->
+    <div id="quick-chat-window" class="hidden mb-4 w-[92vw] sm:w-[420px] h-[520px] glass-card rounded-2xl border border-cyan-500/40 shadow-[0_20px_70px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden animate-float">
+      
+      <!-- Drawer Header -->
+      <div class="p-4 bg-gradient-to-r from-blue-900/60 via-cyan-900/50 to-violet-900/60 border-b border-white/10 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+            <i data-lucide="bot" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+              Multiverse™ RAG Assistant
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            </h4>
+            <span class="text-[10px] text-cyan-300/80 font-mono">ChromaDB Grounded Intelligence</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="openRAGModal()" title="Expand to Full Studio" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition">
+            <i data-lucide="maximize-2" class="w-4 h-4"></i>
+          </button>
+          <button onclick="toggleQuickChat()" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages Stream -->
+      <div id="quick-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
+        <div class="flex gap-2.5">
+          <div class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 flex items-center justify-center shrink-0 font-bold text-[10px]">
+            AI
+          </div>
+          <div class="flex-1 bg-white/5 rounded-xl p-3 text-white/80 leading-relaxed border border-white/5">
+            <p class="font-semibold text-white mb-1">Greetings! I am the Multiverse™ RAG Intelligence.</p>
+            <p class="text-white/60">Ask me anything about the Multiverse Reality Engine, Helios-Q9 processor, wormholes, or parallel timeline branches!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Questions Pills -->
+      <div class="px-3 py-2 border-t border-white/5 bg-black/40 flex items-center gap-1.5 overflow-x-auto text-[11px]">
+        <button onclick="sendQuickQuery('What is Multiverse?')" class="px-2.5 py-1 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0 transition">
+          What is Multiverse?
+        </button>
+        <button onclick="sendQuickQuery('What are the specs of the Helios-Q9 quantum processor?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white/70 shrink-0 transition">
+          Helios-Q9 Specs
+        </button>
+        <button onclick="sendQuickQuery('How do the Einstein-Rosen wormholes maintain low latency?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white/70 shrink-0 transition">
+          Wormhole Latency
+        </button>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="p-3 border-t border-white/10 bg-black/50 flex items-center gap-2">
+        <input id="quick-chat-input" type="text" placeholder="Ask about Multiverse..." onkeydown="if(event.key === 'Enter') sendQuickChat()" class="flex-1 bg-black/60 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-white/40 outline-none transition font-sans">
+        <button id="quick-chat-send" onclick="sendQuickChat()" class="btn-gradient p-2 rounded-xl text-black">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Toggle Button -->
+    <button onclick="toggleQuickChat()" class="group relative flex items-center gap-2.5 px-5 py-3 rounded-full bg-gradient-to-r from-blue-600 via-cyan-500 to-violet-600 text-black font-bold text-xs shadow-[0_0_30px_rgba(0,225,255,0.45)] hover:shadow-[0_0_40px_rgba(0,225,255,0.7)] transition-all transform hover:scale-105 active:scale-95">
+      <i data-lucide="bot" class="w-4 h-4"></i>
+      <span>Multiverse RAG Chat</span>
+      <span class="w-2 h-2 rounded-full bg-black animate-ping"></span>
+    </button>
+  </div>
+
+
+  <!-- ========================================================== -->
+  <!-- MODAL: COMPLETE RAG DOCUMENT ENGINE & INGESTION STUDIO -->
+  <!-- (Supports Ingestion of Multiverse Manual, AI Docs & User Uploads) -->
+  <!-- ========================================================== -->
+  <div id="rag-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl hidden flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden">
+    
+    <!-- Top Header -->
+    <div class="max-w-7xl w-full mx-auto flex items-center justify-between pb-4 border-b border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 text-black font-bold shadow-lg">
+          <i data-lucide="cpu" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            Multiverse™ RAG Intelligence Studio
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              7-Stage Custom HC-SW Architecture
+            </span>
+          </h2>
+          <p class="text-xs text-white/50">Grounded semantic vector retrieval across the Multiverse technical knowledge base.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button onclick="loadSampleManual('multiverse')" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-950/80 border border-cyan-500/40 hover:bg-cyan-900 text-cyan-300 transition">
+          <i data-lucide="globe" class="w-3.5 h-3.5"></i> Load Multiverse Manual
+        </button>
+        <button onclick="loadSampleManual('ai')" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 transition">
+          <i data-lucide="bot" class="w-3.5 h-3.5 text-blue-400"></i> Load AI Whitepaper
+        </button>
+        <button onclick="closeRAGModal()" class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Studio Split View (Upload & Stepper on Left, Chat & Inspector on Right) -->
+    <div class="max-w-7xl w-full mx-auto flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 pt-5 overflow-hidden">
+      
+      <!-- LEFT COLUMN: Drag-Drop Upload & 7-Stage Live Stepper (5 Cols) -->
+      <div class="lg:col-span-5 flex flex-col gap-4 overflow-y-auto pr-1">
+        
+        <!-- Drag & Drop File Upload Box -->
+        <div id="drop-zone" class="glass-card rounded-2xl p-5 border-2 border-dashed border-white/15 hover:border-cyan-400/50 transition-all flex flex-col items-center justify-center text-center cursor-pointer group relative overflow-hidden" onclick="document.getElementById('file-input').click()">
+          <input id="file-input" type="file" class="hidden" accept=".md,.markdown,.txt,.rst,.json,.py,.csv,.html,.log" onchange="handleFileSelect(event)">
+          <div class="w-12 h-12 rounded-2xl bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3 group-hover:scale-110 transition">
+            <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+          </div>
+          <p class="text-sm font-semibold text-white mb-1">Ingest custom reality spec or document, or <span class="text-cyan-400 underline">browse</span></p>
+          <p class="text-[11px] text-white/40">Supported: .md, .txt, .json, .py, .csv, .rst (up to 10 MB)</p>
+          
+          <div id="upload-status" class="hidden mt-3 text-xs font-mono text-cyan-300 flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></div>
+            <span>Executing 7-stage RAG ingestion into ChromaDB...</span>
+          </div>
+        </div>
+
+        <!-- Active Document Card -->
+        <div class="glass-card rounded-2xl p-4 border border-white/10 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+              <i data-lucide="file-check-2" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <span id="active-doc-name" class="text-xs font-bold text-white block">multiverse_manual.md</span>
+              <span id="active-doc-meta" class="text-[10px] text-white/40 font-mono">31 Chunks &bull; ~1,850 Tokens &bull; 9,453 Chars</span>
+            </div>
+          </div>
+          <button onclick="toggleChunksView()" class="btn-outline text-[11px] px-3 py-1 rounded-lg">
+            Inspect Chunks
+          </button>
+        </div>
+
+        <!-- 7-Stage Pipeline Live Stepper Cards -->
+        <div class="flex-1 flex flex-col gap-2">
+          <span class="text-[11px] uppercase tracking-wider font-bold text-white/40 px-1 font-mono">7-Stage Pipeline Execution</span>
+
+          <!-- Stage 1 -->
+          <div id="step-card-1" class="glass-card rounded-xl p-3 border border-white/5 flex items-start gap-3">
+            <div class="step-num w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center justify-center shrink-0">1</div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-white">Upload & SHA-256 Validation</span>
+                <span id="step-time-1" class="text-[10px] font-mono text-cyan-400">4.12ms</span>
+              </div>
+              <p id="step-desc-1" class="text-[11px] text-white/50 mt-0.5">Validates document existence, MIME type, and generates cryptographic hash.</p>
+            </div>
+          </div>
+
+          <!-- Stage 2 -->
+          <div id="step-card-2" class="glass-card rounded-xl p-3 border border-white/5 flex items-start gap-3">
+            <div class="step-num w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center justify-center shrink-0">2</div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-white">Load & Encoding Detection</span>
+                <span id="step-time-2" class="text-[10px] font-mono text-cyan-400">0.48ms</span>
+              </div>
+              <p id="step-desc-2" class="text-[11px] text-white/50 mt-0.5">Decodes bytes as UTF-8 and computes line, word, and character metrics.</p>
+            </div>
+          </div>
+
+          <!-- Stage 3 -->
+          <div id="step-card-3" class="glass-card rounded-xl p-3 border border-white/5 flex items-start gap-3">
+            <div class="step-num w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center justify-center shrink-0">3</div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-white">Structural Splitting</span>
+                <span id="step-time-3" class="text-[10px] font-mono text-cyan-400">0.31ms</span>
+              </div>
+              <p id="step-desc-3" class="text-[11px] text-white/50 mt-0.5">Builds hierarchical section tree (H1 > H2 > H3) and structural ancestry.</p>
+            </div>
+          </div>
+
+          <!-- Stage 4 -->
+          <div id="step-card-4" class="glass-card rounded-xl p-3 border border-white/5 flex items-start gap-3">
+            <div class="step-num w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center justify-center shrink-0">4</div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-white">Normalization & Noise Cleaning</span>
+                <span id="step-time-4" class="text-[10px] font-mono text-cyan-400">0.55ms</span>
+              </div>
+              <p id="step-desc-4" class="text-[11px] text-white/50 mt-0.5">Strips markdown noise, normalizes smart quotes, and standardizes whitespace.</p>
+            </div>
+          </div>
+
+          <!-- Stage 5 -->
+          <div id="step-card-5" class="glass-card rounded-xl p-3 border border-white/5 flex items-start gap-3">
+            <div class="step-num w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center justify-center shrink-0">5</div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-white">Custom HC-SW Chunking</span>
+                <span id="step-time-5" class="text-[10px] font-mono text-cyan-400">0.22ms</span>
+              </div>
+              <p id="step-desc-5" class="text-[11px] text-white/50 mt-0.5">Sentence boundary snapping with contextual breadcrumb prefixing.</p>
+            </div>
+          </div>
+
+          <!-- Stage 6 -->
+          <div id="step-card-6" class="glass-card rounded-xl p-3 border border-white/5 flex items-start gap-3">
+            <div class="step-num w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center justify-center shrink-0">6</div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-white">Dense Vector Embedding</span>
+                <span id="step-time-6" class="text-[10px] font-mono text-cyan-400">480.2ms</span>
+              </div>
+              <p id="step-desc-6" class="text-[11px] text-white/50 mt-0.5">Encodes into 384-dimensional dense vectors via all-MiniLM-L6-v2.</p>
+            </div>
+          </div>
+
+          <!-- Stage 7 -->
+          <div id="step-card-7" class="glass-card rounded-xl p-3 border border-white/5 flex items-start gap-3">
+            <div class="step-num w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold flex items-center justify-center shrink-0">7</div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-white">ChromaDB Persistent Indexing</span>
+                <span id="step-time-7" class="text-[10px] font-mono text-cyan-400">18.4ms</span>
+              </div>
+              <p id="step-desc-7" class="text-[11px] text-white/50 mt-0.5">Persists vectors and metadata into local ChromaDB with cosine similarity.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- RIGHT COLUMN: Interactive Chat & Chunk Explorer (7 Cols) -->
+      <div class="lg:col-span-7 flex flex-col glass-card rounded-2xl border border-white/10 overflow-hidden">
+        
+        <!-- Chat Header Tabs -->
+        <div class="px-5 py-3 border-b border-white/10 flex items-center justify-between bg-black/40">
+          <div class="flex items-center gap-2">
+            <button id="tab-chat" onclick="showRAGTab('chat')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-white">
+              Multiverse RAG Chatbot
+            </button>
+            <button id="tab-chunks" onclick="showRAGTab('chunks')" class="px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white">
+              Chunk Inspector (<span id="chunk-tab-count">31</span>)
+            </button>
+          </div>
+          <span class="text-[11px] text-cyan-400 font-mono">ChromaDB Vector Retrieval: Cosine Distance</span>
+        </div>
+
+        <!-- TAB 1: INTERACTIVE CHAT VIEW -->
+        <div id="chat-view" class="flex-1 flex flex-col overflow-hidden">
+          
+          <!-- Messages container -->
+          <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4">
+            <!-- Welcome message -->
+            <div class="flex gap-3">
+              <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 text-xs font-bold">
+                AI
+              </div>
+              <div class="flex-1 bg-white/5 rounded-2xl p-4 text-xs sm:text-sm text-white/80 leading-relaxed border border-white/5">
+                <p class="font-semibold text-white mb-1">Multiverse™ RAG Intelligence Active &bull; Fully Grounded</p>
+                <p>The Multiverse Engineering & Architecture Manual is currently indexed in ChromaDB. Ask anything about the Helios-Q9 quantum processor, parallel universe simulations, wormholes, or developer APIs!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Suggested Query Chips -->
+          <div class="px-5 py-2 flex items-center gap-2 overflow-x-auto border-t border-white/5 bg-black/30 text-xs">
+            <span class="text-[10px] text-cyan-400/70 font-mono uppercase tracking-wider shrink-0">Try:</span>
+            <button onclick="askQuery('What is Multiverse?')" class="px-2.5 py-1 rounded-full bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/20 shrink-0">
+              What is Multiverse?
+            </button>
+            <button onclick="askQuery('What are the specs of the Helios-Q9 processor?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white shrink-0">
+              Helios-Q9 specs
+            </button>
+            <button onclick="askQuery('How does Cross-Dimensional RAG work?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white shrink-0">
+              CD-RAG architecture
+            </button>
+            <button onclick="askQuery('How do the Einstein-Rosen wormholes maintain low latency?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white shrink-0">
+              Wormhole latency
+            </button>
+          </div>
+
+          <!-- Chat Input Bar -->
+          <div class="p-4 border-t border-white/10 bg-black/50 flex items-center gap-3">
+            <input id="chat-input" type="text" placeholder="Ask any question about Multiverse..." onkeydown="if(event.key === 'Enter') sendQuery()" class="flex-1 bg-black/50 border border-white/15 focus:border-cyan-400 rounded-xl px-4 py-3 text-xs sm:text-sm text-white placeholder-white/40 outline-none transition font-sans">
+            <button id="chat-send-btn" onclick="sendQuery()" class="btn-gradient px-5 py-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 text-black">
+              <span>Send</span>
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 2: CHUNK INSPECTOR VIEW -->
+        <div id="chunks-view" class="flex-1 overflow-y-auto p-5 space-y-3 hidden">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Contextual Chunks Created by HC-SW</h4>
+            <span class="text-[11px] text-cyan-400 font-mono">Max: 450 chars &bull; Overlap: 110 chars</span>
+          </div>
+          <div id="chunks-list" class="space-y-3">
+            <!-- Dynamic chunks injected here -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================== -->
+  <!-- MODAL: DETAILED HARDWARE SPECS POPUP -->
+  <!-- ========================================================== -->
+  <div id="specs-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-2xl w-full rounded-3xl p-6 sm:p-8 border border-white/15 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="cpu" class="w-5 h-5 text-cyan-400"></i>
+          <h3 class="text-lg font-bold text-white">Multiverse™ Technical Specifications</h3>
+        </div>
+        <button onclick="closeSpecsModal()" class="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Processing Unit:</span>
+          <span class="text-white font-mono font-semibold text-right">Dual Helios-Q9 Photonic Processors (4,200 TFLOPS, 128 Qubits)</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Display Subsystem:</span>
+          <span class="text-white font-mono font-semibold text-right">Dual Micro-OLED Photonic Waveguides (16K x 16K per eye, 240Hz)</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Field of View (FOV):</span>
+          <span class="text-cyan-300 font-mono font-semibold text-right">175° Ultrawide Panoramic Field</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Haptic Telemetry:</span>
+          <span class="text-white font-mono font-semibold text-right">10 kHz Ultrasound Non-Invasive Levitation Array</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Tracking Array:</span>
+          <span class="text-white font-mono font-semibold text-right">12 Micro-LiDAR transceivers (0.1mm), 32-ch EEG Band</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Wormhole Protocol:</span>
+          <span class="text-white font-mono font-semibold text-right">Dimensional Portal Transfer Protocol (DPTP, &lt;0.3ms latency)</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Headset Weight:</span>
+          <span class="text-cyan-400 font-mono font-semibold text-right">210 grams (Aerospace Magnesium-Lithium)</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Battery & Runtime:</span>
+          <span class="text-white font-mono font-semibold text-right">Dual Solid-State Graphene, 14h Continuous Immersion</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-white/5">
+          <span class="text-white/50">Semantic RAG Memory:</span>
+          <span class="text-cyan-300 font-mono font-semibold text-right">Persistent ChromaDB, 384-d Dense Vector Hypergraph</span>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-white/10 flex justify-end">
+        <button onclick="closeSpecsModal()" class="btn-gradient px-6 py-2 rounded-xl text-xs font-bold text-black">
+          Close Specifications
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================== -->
+  <!-- JAVASCRIPT: THREE.JS 3D UNIVERSE, SCROLLY ENGINE & RAG -->
+  <!-- ========================================================== -->
+  <script>
+    lucide.createIcons();
+
+    // ==========================================================
+    // 1. SCROLLYTELLING 3D PORTAL ENGINE (20 FRAMES)
+    // ==========================================================
+    const TOTAL_FRAMES = 20;
+    const canvas = document.getElementById('product-canvas');
+    const ctx = canvas.getContext('2d');
+    const scrollyContainer = document.getElementById('scrolly-container');
+    const frameIndicator = document.getElementById('frame-indicator');
+    const navbar = document.getElementById('navbar');
+
+    let loadedImages = [];
+    let imagesLoadedCount = 0;
+    let currentFrameIndex = 0;
+    let isAutoPlaying = false;
+    let autoPlayInterval = null;
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.scale(dpr, dpr);
+      renderFrame(currentFrameIndex);
+    }
+
+    // Preload image sequence frames
+    function preloadFrames() {
+      for (let i = 1; i <= TOTAL_FRAMES; i++) {
+        const img = new Image();
+        const numStr = String(i).padStart(3, '0');
+        img.src = `/static/frames/ezgif-frame-${numStr}.jpg`;
+        img.onload = () => {
+          imagesLoadedCount++;
+          if (imagesLoadedCount === 1) {
+            renderFrame(0);
+          }
+        };
+        loadedImages.push(img);
+      }
+    }
+
+    // Render frame with high-fidelity scaling
+    function renderFrame(frameIdx) {
+      if (loadedImages.length === 0) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+
+      const baseIndex = Math.floor(frameIdx);
+      const nextIndex = Math.min(baseIndex + 1, TOTAL_FRAMES - 1);
+      const fraction = frameIdx - baseIndex;
+
+      const imgA = loadedImages[baseIndex];
+      const imgB = loadedImages[nextIndex];
+
+      ctx.clearRect(0, 0, w, h);
+
+      if (imgA && imgA.complete) {
+        drawImageProp(ctx, imgA, 0, 0, w, h);
+      }
+
+      if (imgB && imgB.complete && fraction > 0.01) {
+        ctx.globalAlpha = fraction;
+        drawImageProp(ctx, imgB, 0, 0, w, h);
+        ctx.globalAlpha = 1.0;
+      }
+
+      const displayNum = Math.min(Math.round(frameIdx) + 1, TOTAL_FRAMES);
+      if (frameIndicator) {
+        frameIndicator.innerText = `Portal Sequence ${String(displayNum).padStart(2, '0')} / ${TOTAL_FRAMES}`;
+      }
+    }
+
+    function drawImageProp(ctx, img, x, y, w, h) {
+      const iw = img.naturalWidth || img.width;
+      const ih = img.naturalHeight || img.height;
+      if (!iw || !ih) return;
+
+      const r = Math.min(w / iw, h / ih);
+      let nw = iw * r;
+      let nh = ih * r;
+      let cx = (w - nw) / 2;
+      let cy = (h - nh) / 2;
+
+      ctx.drawImage(img, 0, 0, iw, ih, cx, cy, nw, nh);
+    }
+
+    // Scroll listener mapping scroll progress to frame sequence and story beats
+    function onScroll() {
+      const rect = scrollyContainer.getBoundingClientRect();
+      const totalScrollable = scrollyContainer.offsetHeight - window.innerHeight;
+      const scrolled = -rect.top;
+      let progress = Math.max(0, Math.min(1, scrolled / totalScrollable));
+
+      currentFrameIndex = progress * (TOTAL_FRAMES - 1);
+      renderFrame(currentFrameIndex);
+      updateStoryBeats(progress);
+
+      if (window.scrollY > 50) {
+        navbar.classList.add('py-2.5', 'bg-black/90');
+      } else {
+        navbar.classList.remove('py-2.5', 'bg-black/90');
+      }
+    }
+
+    function updateStoryBeats(p) {
+      const beat1 = document.getElementById('beat-1');
+      const beat2 = document.getElementById('beat-2');
+      const beat3 = document.getElementById('beat-3');
+      const beat4 = document.getElementById('beat-4');
+
+      beat1.classList.toggle('active', p >= 0 && p < 0.18);
+      beat2.classList.toggle('active', p >= 0.18 && p < 0.42);
+      beat3.classList.toggle('active', p >= 0.42 && p < 0.68);
+      beat4.classList.toggle('active', p >= 0.68 && p <= 1.0);
+    }
+
+    function scrollToProgress(targetProgress) {
+      const totalScrollable = scrollyContainer.offsetHeight - window.innerHeight;
+      const targetY = scrollyContainer.offsetTop + (totalScrollable * targetProgress);
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    }
+
+    function scrollTo3DSection() {
+      const sec = document.getElementById('three-section');
+      if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleAutoPlay() {
+      const btn = document.getElementById('autoplay-btn');
+      if (isAutoPlaying) {
+        clearInterval(autoPlayInterval);
+        isAutoPlaying = false;
+        btn.innerText = '▶ Auto-Warp';
+      } else {
+        isAutoPlaying = true;
+        btn.innerText = '⏸ Pause Warp';
+        let step = 0;
+        autoPlayInterval = setInterval(() => {
+          step += 0.006;
+          if (step > 1) step = 0;
+          scrollToProgress(step);
+        }, 30);
+      }
+    }
+
+
+    // ==========================================================
+    // 2. REAL-TIME THREE.JS 3D WEBGL UNIVERSE
+    // ==========================================================
+    let threeScene, threeCamera, threeRenderer, particles, nodalGroup;
+    let isDragging = false;
+    let prevMouseX = 0, prevMouseY = 0;
+    let rotationVelocityX = 0.001, rotationVelocityY = 0.002;
+    let warpMultiplier = 2.0;
+
+    function initThreeUniverse() {
+      const canvas3d = document.getElementById('three-canvas');
+      if (!canvas3d) return;
+
+      const container = canvas3d.parentElement;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      threeScene = new THREE.Scene();
+      threeScene.fog = new THREE.FogExp2(0x030307, 0.0035);
+
+      threeCamera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+      threeCamera.position.z = 70;
+
+      threeRenderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true });
+      threeRenderer.setSize(width, height);
+      threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // 1. Quantum Singularity Core (Central Pulsing Sphere)
+      nodalGroup = new THREE.Group();
+      threeScene.add(nodalGroup);
+
+      const coreGeo = new THREE.SphereGeometry(6, 32, 32);
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: 0x00e1ff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.65
+      });
+      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+      nodalGroup.add(coreMesh);
+
+      // Inner Core Glow
+      const innerCoreGeo = new THREE.SphereGeometry(3.5, 24, 24);
+      const innerCoreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      nodalGroup.add(new THREE.Mesh(innerCoreGeo, innerCoreMat));
+
+      // 2. Orbiting Dimensional Realities (Parallel World Nodes)
+      const nodeColors = [0x0062ff, 0x00e1ff, 0x8a3ffc, 0x00f0ff, 0x4d53e8];
+      const orbitNodes = [];
+
+      for (let i = 0; i < 9; i++) {
+        const radius = 18 + Math.random() * 25;
+        const angle = (i / 9) * Math.PI * 2;
+        const yOffset = (Math.random() - 0.5) * 20;
+
+        const nodeGeo = new THREE.SphereGeometry(1.8 + Math.random() * 1.4, 16, 16);
+        const nodeMat = new THREE.MeshBasicMaterial({
+          color: nodeColors[i % nodeColors.length],
+          wireframe: i % 2 === 0
+        });
+        const nodeMesh = new THREE.Mesh(nodeGeo, nodeMat);
+
+        nodeMesh.position.set(
+          Math.cos(angle) * radius,
+          yOffset,
+          Math.sin(angle) * radius
+        );
+
+        nodeMesh.userData = {
+          orbitRadius: radius,
+          orbitSpeed: (0.004 + Math.random() * 0.008),
+          orbitAngle: angle,
+          yOffset: yOffset
+        };
+
+        nodalGroup.add(nodeMesh);
+        orbitNodes.push(nodeMesh);
+
+        // Dimensional Conduit Lines to Core
+        const lineMat = new THREE.LineBasicMaterial({
+          color: 0x00e1ff,
+          transparent: true,
+          opacity: 0.25
+        });
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          nodeMesh.position
+        ]);
+        const conduit = new THREE.Line(lineGeo, lineMat);
+        nodalGroup.add(conduit);
+        nodeMesh.userData.conduit = conduit;
+      }
+
+      // 3. Cosmic Quantum Particle Field (1,800 Particles)
+      const particleCount = 1800;
+      const posArray = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 180;
+      }
+
+      const particleGeo = new THREE.BufferGeometry();
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+      const particleMat = new THREE.PointsMaterial({
+        size: 1.2,
+        color: 0x00e1ff,
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending
+      });
+
+      particles = new THREE.Points(particleGeo, particleMat);
+      threeScene.add(particles);
+
+      // Mouse Drag Controls
+      canvas3d.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      });
+
+      window.addEventListener('mouseup', () => { isDragging = false; });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - prevMouseX;
+        const deltaY = e.clientY - prevMouseY;
+        rotationVelocityY += deltaX * 0.0003;
+        rotationVelocityX += deltaY * 0.0003;
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      });
+
+      canvas3d.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        threeCamera.position.z += e.deltaY * 0.05;
+        threeCamera.position.z = Math.max(30, Math.min(120, threeCamera.position.z));
+      }, { passive: false });
+
+      // Resize listener
+      window.addEventListener('resize', () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        threeCamera.aspect = w / h;
+        threeCamera.updateProjectionMatrix();
+        threeRenderer.setSize(w, h);
+      });
+
+      // Animation Loop
+      function animateThree() {
+        requestAnimationFrame(animateThree);
+
+        // Rotate nodes & universe
+        nodalGroup.rotation.y += rotationVelocityY * warpMultiplier;
+        nodalGroup.rotation.x += rotationVelocityX * warpMultiplier;
+
+        // Damping
+        rotationVelocityX *= 0.96;
+        rotationVelocityY *= 0.96;
+        if (!isDragging) {
+          rotationVelocityY += 0.00008;
+        }
+
+        // Particle field drift
+        particles.rotation.y -= 0.0004 * warpMultiplier;
+
+        // Update orbiting world positions
+        orbitNodes.forEach((node) => {
+          node.userData.orbitAngle += node.userData.orbitSpeed * warpMultiplier;
+          const a = node.userData.orbitAngle;
+          const r = node.userData.orbitRadius;
+          node.position.x = Math.cos(a) * r;
+          node.position.z = Math.sin(a) * r;
+
+          // Update conduit geometry
+          const positions = node.userData.conduit.geometry.attributes.position.array;
+          positions[3] = node.position.x;
+          positions[4] = node.position.y;
+          positions[5] = node.position.z;
+          node.userData.conduit.geometry.attributes.position.needsUpdate = true;
+        });
+
+        threeRenderer.render(threeScene, threeCamera);
+      }
+
+      animateThree();
+    }
+
+    function reset3DCamera() {
+      if (threeCamera && nodalGroup) {
+        threeCamera.position.set(0, 0, 70);
+        nodalGroup.rotation.set(0, 0, 0);
+        rotationVelocityX = 0;
+        rotationVelocityY = 0.002;
+      }
+    }
+
+    const dimensionNames = [
+      "Prime Dimension 01",
+      "Earth-77 Quantum Simulation",
+      "Kerr Metric Singularity",
+      "Synthetica Plane IX",
+      "Entangled Sub-space Reality"
+    ];
+
+    function warpRandomDimension() {
+      const idx = Math.floor(Math.random() * dimensionNames.length);
+      document.getElementById('active-dimension-name').innerText = dimensionNames[idx];
+      rotationVelocityY = 0.04;
+      warpMultiplier = 3.5;
+      setTimeout(() => { warpMultiplier = 2.0; }, 800);
+    }
+
+    function changeWarpSpeed(val) {
+      warpMultiplier = parseFloat(val);
+      document.getElementById('warp-speed-val').innerText = `${warpMultiplier.toFixed(1)}x`;
+    }
+
+
+    // ==========================================================
+    // 3. QUANTUM RESONANCE HUD MONITOR
+    // ==========================================================
+    function initQuantumResonanceCanvas() {
+      const freqCanvas = document.getElementById('freq-canvas');
+      if (!freqCanvas) return;
+      const fctx = freqCanvas.getContext('2d');
+      let offset = 0;
+
+      function drawResonance() {
+        fctx.clearRect(0, 0, freqCanvas.width, freqCanvas.height);
+        const bars = 16;
+        const barWidth = freqCanvas.width / bars - 1.5;
+
+        for (let i = 0; i < bars; i++) {
+          const h = (Math.sin(offset + i * 0.45) * 0.5 + 0.5) * 18 + 4;
+          fctx.fillStyle = i % 2 === 0 ? '#00e1ff' : '#8a3ffc';
+          fctx.fillRect(i * (barWidth + 1.5), freqCanvas.height - h, barWidth, h);
+        }
+        offset += 0.08;
+        requestAnimationFrame(drawResonance);
+      }
+      drawResonance();
+    }
+
+
+    // ==========================================================
+    // 4. FLOATING QUICK-CHAT & FULL RAG STUDIO
+    // ==========================================================
+    function toggleQuickChat() {
+      const win = document.getElementById('quick-chat-window');
+      win.classList.toggle('hidden');
+      if (!win.classList.contains('hidden')) {
+        document.getElementById('quick-chat-input').focus();
+      }
+    }
+
+    function sendQuickQuery(query) {
+      document.getElementById('quick-chat-input').value = query;
+      sendQuickChat();
+    }
+
+    async function sendQuickChat() {
+      const input = document.getElementById('quick-chat-input');
+      const query = input.value.trim();
+      if (!query) return;
+
+      input.value = '';
+      addQuickChatMessage('user', query);
+
+      const sendBtn = document.getElementById('quick-chat-send');
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+        const data = await res.json();
+        addQuickBotMessage(data);
+      } catch (err) {
+        addQuickChatMessage('system', `Error: ${err.message}`);
+      } finally {
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    }
+
+    function addQuickChatMessage(role, text) {
+      const container = document.getElementById('quick-chat-messages');
+      const msg = document.createElement('div');
+      msg.className = 'flex gap-2 ' + (role === 'user' ? 'justify-end' : '');
+
+      if (role === 'user') {
+        msg.innerHTML = `
+          <div class="bg-blue-600 text-white rounded-xl rounded-tr-none px-3 py-2 text-xs max-w-[85%] leading-relaxed shadow">
+            ${escapeHtml(text)}
+          </div>
+        `;
+      } else {
+        msg.innerHTML = `
+          <div class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 flex items-center justify-center shrink-0 font-bold text-[10px]">
+            SYS
+          </div>
+          <div class="bg-white/5 rounded-xl p-2.5 text-xs text-cyan-300/90 leading-relaxed border border-white/5 max-w-[85%]">
+            ${escapeHtml(text)}
+          </div>
+        `;
+      }
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function addQuickBotMessage(data) {
+      const container = document.getElementById('quick-chat-messages');
+      const msg = document.createElement('div');
+      msg.className = 'flex gap-2';
+
+      const conf = Math.round((data.confidence || 0) * 100);
+
+      msg.innerHTML = `
+        <div class="w-6 h-6 rounded-md bg-gradient-to-tr from-blue-600 to-cyan-400 text-black flex items-center justify-center shrink-0 font-black text-[10px]">
+          AI
+        </div>
+        <div class="flex-1 bg-white/5 rounded-xl p-3 text-xs text-white/90 leading-relaxed border border-white/5">
+          <div class="flex items-center justify-between text-[10px] text-white/40 mb-1.5 font-mono">
+            <span>${escapeHtml(data.top_section || 'Multiverse')}</span>
+            <span class="text-cyan-400 font-semibold">${conf}%</span>
+          </div>
+          <div class="whitespace-pre-wrap">${formatMarkdown(data.answer)}</div>
+        </div>
+      `;
+
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+    }
+
+
+    // ==========================================================
+    // 5. FULL RAG STUDIO MODAL & 7-STAGE PIPELINE
+    // ==========================================================
+    function openRAGModal() {
+      document.getElementById('rag-modal').classList.remove('hidden');
+      fetchDocStatus();
+      lucide.createIcons();
+    }
+
+    function closeRAGModal() {
+      document.getElementById('rag-modal').classList.add('hidden');
+    }
+
+    function openSpecsModal() {
+      document.getElementById('specs-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeSpecsModal() {
+      document.getElementById('specs-modal').classList.add('hidden');
+    }
+
+    function showRAGTab(tab) {
+      const tabChat = document.getElementById('tab-chat');
+      const tabChunks = document.getElementById('tab-chunks');
+      const chatView = document.getElementById('chat-view');
+      const chunksView = document.getElementById('chunks-view');
+
+      if (tab === 'chat') {
+        tabChat.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-white';
+        tabChunks.className = 'px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white';
+        chatView.classList.remove('hidden');
+        chunksView.classList.add('hidden');
+      } else {
+        tabChunks.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-white';
+        tabChat.className = 'px-3 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white';
+        chunksView.classList.remove('hidden');
+        chatView.classList.add('hidden');
+        fetchChunks();
+      }
+    }
+
+    function toggleChunksView() {
+      showRAGTab('chunks');
+    }
+
+    // Drag and drop handlers
+    const dropZone = document.getElementById('drop-zone');
+    ['dragenter', 'dragover'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-cyan-400', 'bg-cyan-500/5');
+      });
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-cyan-400', 'bg-cyan-500/5');
+      });
+    });
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length > 0) uploadDocument(files[0]);
+    });
+
+    function handleFileSelect(e) {
+      if (e.target.files.length > 0) {
+        uploadDocument(e.target.files[0]);
+      }
+    }
+
+    async function uploadDocument(file) {
+      const uploadStatus = document.getElementById('upload-status');
+      uploadStatus.classList.remove('hidden');
+
+      const formData = new FormData();
+      formData.append('document', file);
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          updatePipelineTelemetry(data);
+          addChatMessage('system', `✓ Successfully executed 7-stage RAG ingestion for "${file.name}"! Indexed into ChromaDB in ${data.total_duration_ms}ms.`);
+          showRAGTab('chat');
+        } else {
+          addChatMessage('system', `Ingestion error: ${data.error}`);
+        }
+      } catch (err) {
+        addChatMessage('system', `Upload network error: ${err.message}`);
+      } finally {
+        uploadStatus.classList.add('hidden');
+      }
+    }
+
+    async function loadSampleManual(sampleKey) {
+      const uploadStatus = document.getElementById('upload-status');
+      uploadStatus.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/load-sample', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sample: sampleKey })
+        });
+        const data = await res.json();
+        if (data.success) {
+          updatePipelineTelemetry(data);
+          addChatMessage('system', `✓ Switched to "${data.doc_info.filename}" (${data.doc_info.chunks_count} chunks indexed in ChromaDB). Ask any question!`);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        uploadStatus.classList.add('hidden');
+      }
+    }
+
+    function updatePipelineTelemetry(data) {
+      const doc = data.doc_info;
+      document.getElementById('active-doc-name').innerText = doc.filename;
+      document.getElementById('active-doc-meta').innerText = `${doc.chunks_count} Chunks • ~${doc.total_tokens} Tokens • ${doc.characters} Chars`;
+      document.getElementById('chunk-tab-count').innerText = doc.chunks_count;
+
+      if (data.steps) {
+        data.steps.forEach(s => {
+          const num = s.step_number;
+          const timeElem = document.getElementById(`step-time-${num}`);
+          const descElem = document.getElementById(`step-desc-${num}`);
+          if (timeElem) timeElem.innerText = `${s.duration_ms}ms`;
+          if (descElem) descElem.innerText = s.summary;
+        });
+      }
+    }
+
+    async function fetchDocStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        if (data.doc_info) {
+          updatePipelineTelemetry(data);
+        }
+      } catch (err) {
+        console.error('Status fetch error:', err);
+      }
+    }
+
+    async function fetchChunks() {
+      const container = document.getElementById('chunks-list');
+      container.innerHTML = '<div class="text-xs text-white/50">Loading chunks from ChromaDB...</div>';
+      try {
+        const res = await fetch('/api/chunks');
+        const data = await res.json();
+        if (data.chunks && data.chunks.length > 0) {
+          container.innerHTML = '';
+          data.chunks.forEach((c) => {
+            const el = document.createElement('div');
+            el.className = 'glass-card rounded-xl p-3.5 border border-white/5 hover:border-cyan-400/30 transition text-xs';
+            el.innerHTML = `
+              <div class="flex items-center justify-between mb-1 text-cyan-300 font-mono text-[10px]">
+                <span>Chunk #${c.index + 1} &bull; ${c.chunk_id}</span>
+                <span>${c.char_length} chars (~${c.estimated_tokens} tokens)</span>
+              </div>
+              <div class="font-semibold text-white/90 text-[11px] mb-1.5 flex items-center gap-1 font-mono">
+                <i data-lucide="folder-tree" class="w-3 h-3 text-cyan-400"></i>
+                ${escapeHtml(c.header_path || 'Multiverse Root')}
+              </div>
+              <p class="text-white/70 text-[11px] font-mono bg-black/40 p-2 rounded-lg leading-relaxed whitespace-pre-wrap">${escapeHtml(c.content)}</p>
+            `;
+            container.appendChild(el);
+          });
+          lucide.createIcons();
+        } else {
+          container.innerHTML = '<div class="text-xs text-white/50">No chunks indexed. Upload a file above.</div>';
+        }
+      } catch (err) {
+        container.innerHTML = `<div class="text-xs text-red-400">Failed to load chunks: ${err.message}</div>`;
+      }
+    }
+
+    function askQuery(queryText) {
+      document.getElementById('chat-input').value = queryText;
+      sendQuery();
+    }
+
+    async function sendQuery() {
+      const input = document.getElementById('chat-input');
+      const query = input.value.trim();
+      if (!query) return;
+
+      input.value = '';
+      addChatMessage('user', query);
+
+      const sendBtn = document.getElementById('chat-send-btn');
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query })
+        });
+        const data = await res.json();
+        addBotMessage(data);
+      } catch (err) {
+        addChatMessage('system', `Error contacting RAG server: ${err.message}`);
+      } finally {
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    }
+
+    function addChatMessage(role, text) {
+      const container = document.getElementById('chat-messages');
+      const msg = document.createElement('div');
+      msg.className = 'flex gap-3 ' + (role === 'user' ? 'justify-end' : '');
+
+      if (role === 'user') {
+        msg.innerHTML = `
+          <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-xs sm:text-sm max-w-[85%] leading-relaxed shadow-md">
+            ${escapeHtml(text)}
+          </div>
+          <div class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0 text-xs font-bold">
+            You
+          </div>
+        `;
+      } else {
+        msg.innerHTML = `
+          <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 text-xs font-bold">
+            SYS
+          </div>
+          <div class="bg-white/5 rounded-2xl rounded-tl-sm p-3 text-xs text-cyan-300/90 leading-relaxed border border-white/5 max-w-[85%]">
+            ${escapeHtml(text)}
+          </div>
+        `;
+      }
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function addBotMessage(data) {
+      const container = document.getElementById('chat-messages');
+      const msg = document.createElement('div');
+      msg.className = 'flex gap-3';
+
+      const conf = Math.round((data.confidence || 0) * 100);
+
+      let sourcesHtml = '';
+      if (data.sources && data.sources.length > 0) {
+        sourcesHtml = `
+          <div class="mt-3 pt-3 border-t border-white/10 space-y-2">
+            <span class="text-[10px] uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-1 font-mono">
+              <i data-lucide="book-open" class="w-3 h-3"></i> Grounded Source Chunks (${data.sources.length})
+            </span>
+            ${data.sources.map((s, idx) => `
+              <div class="bg-black/40 p-2.5 rounded-lg border border-white/5 text-[11px]">
+                <div class="flex justify-between text-white/50 text-[10px] mb-1 font-mono">
+                  <span class="text-cyan-300 font-semibold">[${idx + 1}] ${escapeHtml(s.section)}</span>
+                  <span class="text-cyan-400">Sim: ${(s.similarity_score * 100).toFixed(1)}%</span>
+                </div>
+                <div class="text-white/60 text-[11px] line-clamp-2">${escapeHtml(s.snippet)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      msg.innerHTML = `
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-cyan-400 text-black flex items-center justify-center shrink-0 text-xs font-black shadow-md">
+          AI
+        </div>
+        <div class="flex-1 bg-white/5 rounded-2xl rounded-tl-sm p-4 text-xs sm:text-sm text-white/90 leading-relaxed border border-white/5">
+          <div class="flex items-center justify-between text-[11px] text-white/40 mb-2 font-mono">
+            <span>Section: ${escapeHtml(data.top_section || 'Multiverse')}</span>
+            <span class="text-cyan-400 font-semibold">Confidence: ${conf}%</span>
+          </div>
+          <div class="whitespace-pre-wrap">${formatMarkdown(data.answer)}</div>
+          ${sourcesHtml}
+        </div>
+      `;
+
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+      lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function formatMarkdown(text) {
+      if (!text) return '';
+      let escaped = escapeHtml(text);
+      escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+      return escaped;
+    }
+
+    // ==========================================================
+    // INITIALIZATION ON PAGE LOAD
+    // ==========================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      resizeCanvas();
+      preloadFrames();
+      initThreeUniverse();
+      initQuantumResonanceCanvas();
+      fetchDocStatus();
+      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('scroll', onScroll, { passive: true });
+    });
+  </script>
+
+</body>
+</html>
