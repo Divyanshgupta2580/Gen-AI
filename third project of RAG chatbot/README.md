@@ -49,8 +49,9 @@ flowchart TD
 ```text
 ├── Alderbridge-Employee-Rulebook.pdf  # Sample document
 ├── rag_pdf.ipynb                      # Complete Jupyter Notebook walkthrough
-├── app.py                             # Streamlit Web Chatbot UI
-├── chat.py                            # Interactive CLI Chat interface
+├── app.py                             # Streamlit Web Chatbot UI + Evaluation Suite
+├── chat.py                            # Interactive CLI Chat interface + Evaluation
+├── evaluator.py                       # RAG evaluation metrics, Gemini LLM judge & benchmark suite
 ├── rag_pdf.py                         # Standalone execution pipeline
 ├── requirements.txt                   # Project dependencies
 ├── .env.example                       # Environment variables template
@@ -119,7 +120,21 @@ jupyter notebook rag_pdf.ipynb
 
 ---
 
-## 🧪 Grounding & Verification Benchmarks
+## 🧪 Grounding, Evaluation & Verification Benchmarks
+
+The project includes a built-in RAG evaluation framework (`evaluator.py`) integrated into both `app.py` and `chat.py`:
+- **Retrieval Metrics:** `Hit Rate @ K` and `MRR` (Mean Reciprocal Rank) over chunk IDs.
+- **Refusal Detection:** Automatic detection of grounded refusals on out-of-scope questions.
+- **Gemini LLM Judge:** Automated `Groundedness` and `Correctness` scoring (`0.0–1.0`) with JSON output and reasoning.
+- **Latency & Cost Tracking:** Per-turn response delay and token-based cost estimates.
+
+Run the benchmark evaluation suite from the CLI:
+```bash
+python evaluator.py
+# or via the CLI chatbot:
+python chat.py --eval
+```
+Or switch to **📊 Evaluation Suite** in the Streamlit sidebar (`streamlit run app.py`).
 
 | Query | Retrieved Source | Grounded Result |
 | :--- | :--- | :--- |

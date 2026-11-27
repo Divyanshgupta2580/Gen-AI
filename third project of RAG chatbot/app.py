@@ -1,4 +1,6 @@
+import json
 import os
+import time
 import streamlit as st
 import chromadb
 from dotenv import load_dotenv
@@ -16,6 +18,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
+from evaluator import (
+    ALDERBRIDGE_BENCHMARK,
+    calculate_summary,
+    evaluate_question,
+    extract_token_cost,
+    run_benchmark_evaluation,
+)
+
 # Page configuration
 st.set_page_config(
     page_title="Alderbridge Rulebook AI",
@@ -27,8 +37,16 @@ st.set_page_config(
 # Constants
 DB_DIR = "./chroma_db"
 COLLECTION_NAME = "alderbridge_employee_rulebook"
-DEFAULT_KEY = os.getenv("GOOGLE_API_KEY", "")
+DEFAULT_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY", "")
 DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+MODEL_OPTIONS = list(dict.fromkeys([
+    DEFAULT_MODEL,
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-2.5-flash",
+]))
+EVAL_MODEL_OPTIONS = ["Same as Chat Model", "gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
 
 # Custom CSS for styling
 st.markdown("""
@@ -68,7 +86,7 @@ st.markdown("""
 
 @st.cache_resource
 def load_rag_components(api_key: str, model_name: str):
-    """Initializes and caches the local vector store and Gemini LLM."""
+    """Initializes and caches the local vector store, prompt template, and Gemini LLM."""
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         model_kwargs={"device": "cpu"},
@@ -87,12 +105,6 @@ def load_rag_components(api_key: str, model_name: str):
         search_kwargs={"k": 3, "fetch_k": 10, "lambda_mult": 0.7}
     )
 
-    llm = ChatGoogleGenerativeAI(
-        model=model_name,
-        google_api_key=api_key,
-        temperature=0.1
-    )
-
     prompt = ChatPromptTemplate.from_template("""You are an expert HR Policy Advisor for Alderbridge Office Systems.
 Answer the employee's question accurately, clearly, and solely based on the official Alderbridge Employee Rulebook context provided below.
 
@@ -107,33 +119,100 @@ Guidelines:
 2. Cite the exact Policy Number (e.g., Policy 02.01) and Section name whenever available.
 3. If the context does not contain the information, state that clearly instead of speculating.""")
 
-    chain = prompt | llm | StrOutputParser()
+    llm = (
+        ChatGoogleGenerativeAI(
+            model=model_name,
+            google_api_key=api_key,
+            temperature=0.1
+        )
+        if api_key
+        else None
+    )
 
-    return retriever, chain
+    return retriever, prompt, llm
 
+
+def run_rag_turn(retriever, prompt, llm, query: str, model_name: str):
+    """Execute retrieval + generation and return `(docs, answer, cost, delay)`."""
+    start = time.perf_counter()
+    docs = retriever.invoke(query)
+    context_str = "\n\n".join(
+        [f"[Page {d.metadata.get('page', 0) + 1}]:\n{d.page_content.strip()}" for d in docs]
+    )
+    ai_message = llm.invoke(prompt.invoke({"context": context_str, "question": query}))
+    answer = StrOutputParser().invoke(ai_message)
+    delay = round(time.perf_counter() - start, 3)
+    cost = extract_token_cost(ai_message, model_name)
+    return docs, answer, cost, delay
+
+
+def render_eval_expander(eval_result: dict):
+    """Render per-response RAG evaluation metrics inside an expander."""
+    with st.expander("📊 RAG Evaluation Metrics"):
+        col1, col2, col3, col4 = st.columns(4)
+        groundedness = eval_result.get("groundedness")
+        col1.metric("Groundedness", f"{groundedness:.2f}" if groundedness is not None else "N/A")
+        col2.metric("Refusal", "Yes" if eval_result.get("refusal") else "No")
+        col3.metric("Delay", f"{eval_result.get('delay_seconds', 0.0):.2f}s")
+        col4.metric("Est. Cost", f"${eval_result.get('cost', 0.0):.6f}")
+
+        if eval_result.get("judge_reason"):
+            st.caption(f"**Judge Reason:** {eval_result['judge_reason']}")
+
+
+# Initialize session state
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Hello! I am your Alderbridge HR Policy Assistant. Ask me anything about working hours, paid leave, workplace safety, reporting misconduct, business expenses, or separation procedures."
+        }
+    ]
+if "eval_results" not in st.session_state:
+    st.session_state.eval_results = []
 
 # Sidebar configuration
 with st.sidebar:
     st.image("https://img.icons8.com/fluency/96/policy-document.png", width=64)
     st.title("Rulebook Settings")
-    
+
+    mode = st.radio("Workspace Mode", ["💬 Chat Assistant", "📊 Evaluation Suite"])
+
     api_key = st.text_input("Gemini API Key", value=DEFAULT_KEY, type="password")
-    model_name = st.selectbox(
-        "Gemini Model",
-        ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"],
-        index=0
+    model_name = st.selectbox("Gemini Model", MODEL_OPTIONS, index=0)
+
+    st.markdown("---")
+    st.subheader("Evaluation Settings")
+    enable_live_eval = st.toggle(
+        "Live RAG Judge",
+        value=True,
+        help="Automatically evaluate each answer for Groundedness, Refusal, Latency, and Cost."
     )
+    eval_model_choice = st.selectbox("Judge Model", EVAL_MODEL_OPTIONS, index=0)
+    eval_model = model_name if eval_model_choice == "Same as Chat Model" else eval_model_choice
+
+    if st.session_state.eval_results:
+        summary = calculate_summary(st.session_state.eval_results)
+        st.markdown("**Session Metrics**")
+        g_avg = summary["Groundedness"]
+        st.caption(
+            f"Turns: {summary['Total Questions']} | "
+            f"Groundedness: {f'{g_avg:.2f}' if g_avg is not None else 'N/A'} | "
+            f"Refusal Rate: {summary['Refusal Rate']:.0%} | "
+            f"Avg Delay: {summary['Average Delay (seconds)']:.2f}s"
+        )
 
     st.markdown("---")
     st.subheader("System Status")
-    st.success("🟢 Local Chroma DB: Active")
+    if os.path.exists(DB_DIR):
+        st.success("🟢 Local Chroma DB: Active")
+    else:
+        st.warning("🟡 Local Chroma DB missing — run `python rag_pdf.py` first.")
     st.info("📄 Document: Alderbridge-Employee-Rulebook.pdf")
     st.markdown("**Chunking:** Semantic (Sentence Distance)")
     st.markdown("**Embeddings:** `all-MiniLM-L6-v2` (Local)")
     st.markdown("**Distance Space:** Cosine Similarity")
 
-    st.markdown("---")
-    st.subheader("Quick Prompts")
     quick_queries = [
         "What are standard office hours and breaks?",
         "How many days of paid sick leave do I get?",
@@ -146,23 +225,16 @@ with st.sidebar:
 st.markdown("<div class='main-header'>📖 Alderbridge Employee Rulebook AI</div>", unsafe_allow_html=True)
 st.markdown("<div class='sub-header'>Instant, verified answers grounded in the official company policies.</div>", unsafe_allow_html=True)
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! I am your Alderbridge HR Policy Assistant. Ask me anything about working hours, paid leave, workplace safety, reporting misconduct, business expenses, or separation procedures."}
-    ]
-
-# Render chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-        if "sources" in message:
-            with st.expander("📚 View Cited Rulebook Clauses"):
-                for s in message["sources"]:
-                    st.markdown(f"<div class='source-box'><span class='badge'>Page {s['page']}</span><b>{s['header']}</b><br>{s['text']}</div>", unsafe_allow_html=True)
 
 # Function to process user question
 def handle_query(user_query: str):
+    if not api_key:
+        st.warning("Please enter your Gemini API Key in the sidebar to ask questions.")
+        return
+    if not os.path.exists(DB_DIR):
+        st.error(f"Local Chroma DB not found at '{DB_DIR}'. Run `python rag_pdf.py` first to build the index.")
+        return
+
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.markdown(user_query)
@@ -170,12 +242,8 @@ def handle_query(user_query: str):
     with st.chat_message("assistant"):
         with st.spinner("Searching official rulebook & generating answer..."):
             try:
-                retriever, chain = load_rag_components(api_key, model_name)
-                docs = retriever.invoke(user_query)
-
-                # Format context
-                context_str = "\n\n".join([f"[Page {d.metadata.get('page', 0)+1}]:\n{d.page_content.strip()}" for d in docs])
-                answer = chain.invoke({"context": context_str, "question": user_query})
+                retriever, prompt, llm = load_rag_components(api_key, model_name)
+                docs, answer, cost, delay = run_rag_turn(retriever, prompt, llm, user_query, model_name)
 
                 # Prepare sources for expander
                 sources = []
@@ -185,6 +253,7 @@ def handle_query(user_query: str):
                     body = "\n".join(lines[1:4]) if len(lines) > 1 else d.page_content.strip()[:180]
                     sources.append({
                         "page": d.metadata.get("page", 0) + 1,
+                        "chunk_id": d.metadata.get("chunk_id", "N/A"),
                         "header": first_line,
                         "text": body
                     })
@@ -192,23 +261,149 @@ def handle_query(user_query: str):
                 st.markdown(answer)
                 with st.expander("📚 View Cited Rulebook Clauses"):
                     for s in sources:
-                        st.markdown(f"<div class='source-box'><span class='badge'>Page {s['page']}</span><b>{s['header']}</b><br>{s['text']}</div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div class='source-box'><span class='badge'>Page {s['page']} · Chunk #{s['chunk_id']}</span>"
+                            f"<b>{s['header']}</b><br>{s['text']}</div>",
+                            unsafe_allow_html=True
+                        )
 
-                st.session_state.messages.append({
+                eval_result = None
+                try:
+                    eval_result = evaluate_question(
+                        question=user_query,
+                        retrieved_docs=docs,
+                        answer=answer,
+                        relevant_doc_ids=None,
+                        reference_answer=None,
+                        k=3,
+                        cost=cost,
+                        delay=delay,
+                        api_key=api_key,
+                        model=eval_model,
+                        run_judge=enable_live_eval,
+                    )
+                    st.session_state.eval_results.append(eval_result)
+                    render_eval_expander(eval_result)
+                except Exception as eval_exc:
+                    st.caption(f"⚠️ Evaluation skipped: {eval_exc}")
+
+                message_entry = {
                     "role": "assistant",
                     "content": answer,
-                    "sources": sources
-                })
+                    "sources": sources,
+                }
+                if eval_result is not None:
+                    message_entry["evaluation"] = eval_result
+                st.session_state.messages.append(message_entry)
             except Exception as e:
                 st.error(f"Error answering query: {e}")
 
 
-# Quick buttons in sidebar
-with st.sidebar:
-    for q in quick_queries:
-        if st.button(q, key=f"btn_{q}", use_container_width=True):
-            handle_query(q)
+if mode == "💬 Chat Assistant":
+    # Render chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+            if "sources" in message:
+                with st.expander("📚 View Cited Rulebook Clauses"):
+                    for s in message["sources"]:
+                        chunk_badge = f" · Chunk #{s['chunk_id']}" if "chunk_id" in s else ""
+                        st.markdown(
+                            f"<div class='source-box'><span class='badge'>Page {s['page']}{chunk_badge}</span>"
+                            f"<b>{s['header']}</b><br>{s['text']}</div>",
+                            unsafe_allow_html=True
+                        )
+            if "evaluation" in message:
+                render_eval_expander(message["evaluation"])
 
-# Chat input
-if prompt := st.chat_input("Ask a question about the Employee Rulebook..."):
-    handle_query(prompt)
+    # Quick buttons in sidebar
+    with st.sidebar:
+        st.markdown("---")
+        st.subheader("Quick Prompts")
+        for q in quick_queries:
+            if st.button(q, key=f"btn_{q}", width="stretch"):
+                handle_query(q)
+
+    # Chat input
+    if prompt_input := st.chat_input("Ask a question about the Employee Rulebook..."):
+        handle_query(prompt_input)
+
+else:
+    st.subheader("🧪 Alderbridge RAG Benchmark Evaluation")
+    st.write(
+        "Run automated retrieval (`Hit Rate @ K`, `MRR`), refusal detection, latency, cost, "
+        "and Gemini LLM-judge (`Groundedness`, `Correctness`) evaluation across the benchmark dataset."
+    )
+
+    with st.expander(f"Preview Benchmark Dataset ({len(ALDERBRIDGE_BENCHMARK)} questions)"):
+        st.dataframe(
+            [
+                {
+                    "Question": c["question"],
+                    "Relevant Chunk IDs": str(c["relevant_doc_ids"]) if c["relevant_doc_ids"] is not None else "Out-of-scope (Refusal)",
+                    "Reference Answer": c["reference_answer"],
+                }
+                for c in ALDERBRIDGE_BENCHMARK
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+
+    if st.button("🚀 Run Full Benchmark Evaluation", type="primary"):
+        if not api_key:
+            st.warning("Please enter your Gemini API Key in the sidebar first.")
+        elif not os.path.exists(DB_DIR):
+            st.error(f"Local Chroma DB not found at '{DB_DIR}'. Run `python rag_pdf.py` first to build the index.")
+        else:
+            try:
+                retriever, prompt, llm = load_rag_components(api_key, model_name)
+                progress_bar = st.progress(0.0, text="Starting evaluation...")
+
+                def _on_progress(idx: int, total: int, q: str):
+                    progress_bar.progress(idx / total, text=f"Evaluating {idx}/{total}: {q}")
+
+                def _ask(q: str):
+                    docs, answer, cost, _ = run_rag_turn(retriever, prompt, llm, q, model_name)
+                    return docs, answer, cost
+
+                results, summary = run_benchmark_evaluation(
+                    _ask,
+                    k=3,
+                    api_key=api_key,
+                    model=eval_model,
+                    run_judge=True,
+                    progress_callback=_on_progress,
+                )
+                progress_bar.empty()
+                st.session_state.benchmark_results = results
+                st.session_state.benchmark_summary = summary
+            except Exception as e:
+                st.error(f"Benchmark evaluation failed: {e}")
+
+    if "benchmark_summary" in st.session_state and "benchmark_results" in st.session_state:
+        summary = st.session_state.benchmark_summary
+        results = st.session_state.benchmark_results
+
+        st.markdown("### Final Summary")
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Hit Rate @ 3", f"{summary['Hit Rate at K']:.2f}" if summary["Hit Rate at K"] is not None else "N/A")
+        m2.metric("MRR", f"{summary['MRR']:.2f}" if summary["MRR"] is not None else "N/A")
+        m3.metric("Groundedness", f"{summary['Groundedness']:.2f}" if summary["Groundedness"] is not None else "N/A")
+        m4.metric("Correctness", f"{summary['Correctness']:.2f}" if summary["Correctness"] is not None else "N/A")
+
+        m5, m6, m7, m8 = st.columns(4)
+        m5.metric("Refusal Rate", f"{summary['Refusal Rate']:.0%}" if summary["Refusal Rate"] is not None else "N/A")
+        m6.metric("Avg Cost ($)", f"${summary['Average Cost']:.6f}" if summary["Average Cost"] is not None else "N/A")
+        m7.metric("Avg Delay (s)", f"{summary['Average Delay (seconds)']:.2f}s" if summary["Average Delay (seconds)"] is not None else "N/A")
+        m8.metric("Total Questions", str(summary["Total Questions"]))
+
+        st.markdown("### Per-Question Results")
+        st.dataframe(results, width="stretch", hide_index=True)
+
+        report_payload = json.dumps({"summary": summary, "results": results}, indent=2)
+        st.download_button(
+            "⬇️ Download Evaluation Report (JSON)",
+            data=report_payload,
+            file_name="rag_evaluation_report.json",
+            mime="application/json",
+        )

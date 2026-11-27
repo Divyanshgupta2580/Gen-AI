@@ -137,6 +137,7 @@ def main():
     vectorstore = Chroma.from_documents(
         documents=semantic_chunks,
         embedding=embeddings,
+        ids=[str(idx) for idx in range(len(semantic_chunks))],
         client=client,
         collection_name=collection_name,
         collection_metadata={"hnsw:space": "cosine"}
@@ -203,17 +204,19 @@ Answer with concise, policy-compliant instructions and cite the applicable Polic
     print("Assembled Context:\n", assembled.to_string()[:400], "...")
 
     # Optional Gemini LLM invocation if API key is present
-    if os.getenv("GOOGLE_API_KEY"):
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+    if api_key:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+            model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+            llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=api_key, temperature=0)
             full_chain = rag_prompt_chain | llm | StrOutputParser()
             response = full_chain.invoke(test_q)
             print("\nGemini Answer:\n", response)
         except Exception as e:
             print("\nLLM call error:", e)
     else:
-        print("\n[GOOGLE_API_KEY not set - prompt context generated successfully for offline execution]")
+        print("\n[GOOGLE_API_KEY / GEMINI_API_KEY not set - prompt context generated successfully for offline execution]")
 
 
 if __name__ == "__main__":
