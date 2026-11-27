@@ -22,6 +22,7 @@ from evaluator import (
     display_results,
     evaluate_question,
     extract_token_cost,
+    lookup_benchmark_case,
     resolve_api_key,
     resolve_eval_model,
     run_benchmark_evaluation,
@@ -135,24 +136,31 @@ def ask_chatbot(question: str, evaluate: bool = True, eval_history: list | None 
         if evaluate:
             try:
                 eval_model = resolve_eval_model(os.getenv("GEMINI_EVAL_MODEL") or active_model_name)
+                matched_case = lookup_benchmark_case(question)
                 eval_result = evaluate_question(
                     question=question,
                     retrieved_docs=docs,
                     answer=answer,
-                    relevant_doc_ids=None,
-                    reference_answer=None,
+                    relevant_doc_ids=matched_case.get("relevant_doc_ids") if matched_case else None,
+                    reference_answer=matched_case.get("reference_answer") if matched_case else None,
                     k=3,
                     cost=cost,
                     delay=delay,
                     api_key=api_key,
                     model=eval_model,
+                    infer_relevant_from_judge=(
+                        matched_case is None or matched_case.get("relevant_doc_ids") is None
+                    ),
                 )
                 if eval_history is not None:
                     eval_history.append(eval_result)
 
                 print("-" * 70)
                 print("EVALUATION METRICS:")
+                print(f"  • Hit Rate @ 3 : {eval_result['hit_rate_at_k']}")
+                print(f"  • MRR          : {eval_result['mrr']}")
                 print(f"  • Groundedness : {eval_result['groundedness']}")
+                print(f"  • Correctness  : {eval_result['correctness']}")
                 print(f"  • Refusal      : {eval_result['refusal']}")
                 print(f"  • Delay (s)    : {eval_result['delay_seconds']}")
                 print(f"  • Est. Cost ($): {eval_result['cost']:.6f}")

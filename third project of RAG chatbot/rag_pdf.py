@@ -220,4 +220,9 @@ Answer with concise, policy-compliant instructions and cite the applicable Polic
 
 
 if __name__ == "__main__":
+    import sys
+
     main()
+    if "--eval" in sys.argv:
+        import evaluator
+        evaluator.main()

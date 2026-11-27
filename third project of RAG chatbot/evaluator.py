@@ -188,12 +188,22 @@ def _parse_judge_json(raw_text: str) -> dict[str, Any]:
     return parsed
 
 
-def _clamp_score(value: Any) -> float | None:
-    """Convert a score to a float clamped to [0.0, 1.0], preserving None."""
+def _to_binary_score(value: Any) -> int | None:
+    """Convert a score strictly to binary 0 or 1, preserving None."""
     if value is None:
         return None
+    if isinstance(value, bool):
+        return int(value)
     score = float(value)
-    return max(0.0, min(1.0, score))
+    return 1 if score >= 0.5 else 0
+
+
+def _normalize_matched_ids(raw_ids: Any, retrieved_ids: Sequence[Any]) -> list[Any]:
+    """Match judge-returned doc IDs back to the exact values/types in `retrieved_ids`."""
+    if not isinstance(raw_ids, list):
+        return []
+    raw_strs = {str(item).strip() for item in raw_ids if item is not None}
+    return [doc_id for doc_id in retrieved_ids if doc_id is not None and str(doc_id).strip() in raw_strs]
 
 
 def llm_judge(
@@ -207,10 +217,11 @@ def llm_judge(
 ) -> dict[str, Any]:
     """
     Uses Gemini to evaluate:
-    1. Groundedness: Is the answer supported by context?
-    2. Correctness: Is the answer factually correct?
+    1. Groundedness: Is the answer supported by context? (0 or 1)
+    2. Correctness: Is the answer factually correct? (0 or 1, or null if no reference)
+    3. Relevant Doc IDs: Which [Doc ID: ...] chunks in context directly answer the question.
 
-    Scores are between 0 and 1.
+    Scores are strictly binary: 0 or 1.
     """
     prompt = f"""
 You are an evaluator for a RAG chatbot.
@@ -229,28 +240,33 @@ REFERENCE ANSWER:
 CHATBOT ANSWER:
 {answer}
 
-Evaluate these two metrics:
+Evaluate these metrics:
 
-1. Groundedness:
-Are the claims in the chatbot answer supported by
+1. Groundedness (0 or 1):
+Are all claims and policy citations in the chatbot answer supported by
 the retrieved document context?
+Return 1 if fully supported (including accurate refusal when context lacks the answer), or 0 if unsupported or misattributed.
 
-2. Correctness:
-Is the chatbot answer factually correct compared
-with the reference answer and reliable knowledge?
+2. Correctness (0 or 1):
+Is the chatbot answer factually correct and consistent with the reference answer?
+Return 1 if factually accurate and complete, or 0 if incorrect or missing key details.
 
 If no reference answer is provided, return null
 for correctness rather than guessing.
 
+3. Relevant Doc IDs:
+If chunks are labeled with [Doc ID: X], list the IDs of chunks that contain relevant information to answer the question (or [] if none are relevant).
+
 Return ONLY valid JSON in this format:
 
 {{
-    "groundedness": 0.0,
+    "groundedness": 0,
     "correctness": null,
+    "relevant_doc_ids": [],
     "reason": "Short explanation"
 }}
 
-Use scores between 0 and 1.
+Use ONLY integer 0 or 1 for groundedness and correctness (never decimals).
 """
 
     eval_client = get_genai_client(api_key)
@@ -269,6 +285,7 @@ Use scores between 0 and 1.
         return {
             "groundedness": None,
             "correctness": None,
+            "relevant_doc_ids": [],
             "reason": "Empty response from judge model.",
         }
 
@@ -278,17 +295,22 @@ Use scores between 0 and 1.
         return {
             "groundedness": None,
             "correctness": None,
+            "relevant_doc_ids": [],
             "reason": f"Failed to parse judge JSON: {exc}",
         }
 
-    groundedness = _clamp_score(parsed.get("groundedness"))
+    groundedness = _to_binary_score(parsed.get("groundedness"))
     correctness = (
-        None if reference_answer is None else _clamp_score(parsed.get("correctness"))
+        None if reference_answer is None else _to_binary_score(parsed.get("correctness"))
     )
+    relevant_doc_ids = parsed.get("relevant_doc_ids")
+    if not isinstance(relevant_doc_ids, list):
+        relevant_doc_ids = []
 
     return {
         "groundedness": groundedness,
         "correctness": correctness,
+        "relevant_doc_ids": relevant_doc_ids,
         "reason": str(parsed.get("reason", "")),
     }
 
@@ -311,18 +333,18 @@ def evaluate_question(
     api_key: str | None = None,
     model: str | None = None,
     run_judge: bool = True,
+    infer_relevant_from_judge: bool = False,
 ) -> dict[str, Any]:
     """Evaluate a single RAG turn across retrieval, refusal, and LLM-judge metrics."""
     retrieved_ids = [_extract_doc_id(doc) for doc in retrieved_docs]
-    context = "\n".join(_extract_doc_text(doc) for doc in retrieved_docs)
-
-    # Retrieval metrics (None when ground-truth relevant IDs are not supplied, e.g. live chat)
-    if relevant_doc_ids is None:
-        hit = None
-        mrr = None
-    else:
-        hit = hit_rate_at_k(retrieved_ids, relevant_doc_ids, k)
-        mrr = reciprocal_rank(retrieved_ids, relevant_doc_ids)
+    context_blocks = []
+    for doc, doc_id in zip(retrieved_docs, retrieved_ids):
+        text = _extract_doc_text(doc)
+        if doc_id is not None:
+            context_blocks.append(f"[Doc ID: {doc_id}]\n{text}")
+        else:
+            context_blocks.append(text)
+    context = "\n\n".join(context_blocks)
 
     # Refusal metric
     refusal = detect_refusal(answer) if was_refused is None else bool(was_refused)
@@ -341,8 +363,23 @@ def evaluate_question(
         judged = {
             "groundedness": None,
             "correctness": None,
+            "relevant_doc_ids": [],
             "reason": "LLM judge skipped.",
         }
+
+    # Retrieval metrics (explicit ground-truth IDs, or judge-inferred IDs during live chat)
+    effective_relevant_ids = relevant_doc_ids
+    if effective_relevant_ids is None and infer_relevant_from_judge and run_judge:
+        effective_relevant_ids = _normalize_matched_ids(
+            judged.get("relevant_doc_ids"), retrieved_ids
+        )
+
+    if effective_relevant_ids is None:
+        hit = None
+        mrr = None
+    else:
+        hit = hit_rate_at_k(retrieved_ids, effective_relevant_ids, k)
+        mrr = reciprocal_rank(retrieved_ids, effective_relevant_ids)
 
     return {
         "question": question,
@@ -387,7 +424,7 @@ def calculate_summary(results: Sequence[dict[str, Any]]) -> dict[str, Any]:
 
 def display_results(results: Sequence[dict[str, Any]]) -> None:
     """Pretty-print per-question evaluation results and the final summary."""
-    print("\n========== RAG EVALUATION ==========\n")
+    print("\n========== RAG EVALUATION (0 or 1 SCORES) ==========\n")
 
     for i, result in enumerate(results, start=1):
         print(f"\nQuestion {i}: {result['question']}")
@@ -462,6 +499,25 @@ ALDERBRIDGE_BENCHMARK: list[dict[str, Any]] = [
     },
 ]
 
+_QUICK_QUERY_ALIASES: dict[str, int] = {
+    "what are standard office hours and breaks?": 0,
+    "how many days of paid sick leave do i get?": 1,
+    "can i work remotely, and what is the policy?": 3,
+    "what is the notice period for resignation?": 4,
+}
+
+
+def lookup_benchmark_case(question: str) -> dict[str, Any] | None:
+    """Return a matching benchmark case (ground-truth chunk IDs & reference) if known."""
+    normalized = " ".join((question or "").strip().lower().split())
+    for case in ALDERBRIDGE_BENCHMARK:
+        if " ".join(case["question"].lower().split()) == normalized:
+            return case
+    alias_idx = _QUICK_QUERY_ALIASES.get(normalized)
+    if alias_idx is not None:
+        return ALDERBRIDGE_BENCHMARK[alias_idx]
+    return None
+
 
 def run_benchmark_evaluation(
     ask_fn: Callable[[str], tuple[list[Any], str, float]],
@@ -509,76 +565,33 @@ def run_benchmark_evaluation(
     return results, calculate_summary(results)
 
 
-if __name__ == "__main__":
+def main() -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """
+    Connect directly to the preexisting chatbot project (rag_pdf.py + chat.py),
+    run the full RAG evaluation benchmark, and display binary (0/1) results.
+    """
     import sys
-    import chromadb
-    from langchain_chroma import Chroma
-    from langchain_core.output_parsers import StrOutputParser
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_google_genai import ChatGoogleGenerativeAI
-    try:
-        from langchain_huggingface import HuggingFaceEmbeddings
-    except ImportError:
-        from langchain_community.embeddings import HuggingFaceEmbeddings
 
-    db_dir = "./chroma_db"
-    collection_name = "alderbridge_employee_rulebook"
+    if not os.path.exists("./chroma_db"):
+        import rag_pdf
+        rag_pdf.main()
 
-    if not os.path.exists(db_dir):
-        print(f"Error: '{db_dir}' not found. Run 'python rag_pdf.py' first to build the index.")
-        sys.exit(1)
+    import chat
 
-    resolved_key = resolve_api_key()
-    chat_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
-
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
-    chroma_client = chromadb.PersistentClient(path=db_dir)
-    vectorstore = Chroma(
-        client=chroma_client,
-        collection_name=collection_name,
-        embedding_function=embeddings,
-    )
-    retriever = vectorstore.as_retriever(
-        search_type="mmr",
-        search_kwargs={"k": 3, "fetch_k": 10, "lambda_mult": 0.7},
-    )
-
-    if not resolved_key:
+    if not chat.llm:
         print("Error: Set GOOGLE_API_KEY or GEMINI_API_KEY in .env to run full RAG evaluation.")
         sys.exit(1)
 
-    llm = ChatGoogleGenerativeAI(
-        model=chat_model,
-        google_api_key=resolved_key,
-        temperature=0.1,
+    eval_model = resolve_eval_model(os.getenv("GEMINI_EVAL_MODEL") or chat.active_model_name)
+    eval_results, summary = run_benchmark_evaluation(
+        chat.run_rag_turn,
+        k=3,
+        api_key=chat.api_key,
+        model=eval_model,
     )
-    prompt = ChatPromptTemplate.from_template(
-        """You are an expert HR assistant answering questions based solely on the official Alderbridge Employee Rulebook.
-
-Official Context:
-{context}
-
-Employee Question:
-{question}
-
-Answer strictly based on the context above. If the information is not covered in the rulebook, clearly state that. Cite the applicable Policy ID or Section:"""
-    )
-    parser = StrOutputParser()
-
-    def _ask(question: str) -> tuple[list[Any], str, float]:
-        docs = retriever.invoke(question)
-        context_str = "\n\n".join(
-            f"[Page {d.metadata.get('page', 0) + 1} | Chunk #{d.metadata.get('chunk_id', 'N/A')}]:\n{d.page_content.strip()}"
-            for d in docs
-        )
-        ai_msg = llm.invoke(prompt.invoke({"context": context_str, "question": question}))
-        answer_text = parser.invoke(ai_msg)
-        cost = extract_token_cost(ai_msg, chat_model)
-        return docs, answer_text, cost
-
-    eval_results, _ = run_benchmark_evaluation(_ask, k=3, api_key=resolved_key)
     display_results(eval_results)
+    return eval_results, summary
+
+
+if __name__ == "__main__":
+    main()

@@ -23,6 +23,7 @@ from evaluator import (
     calculate_summary,
     evaluate_question,
     extract_token_cost,
+    lookup_benchmark_case,
     run_benchmark_evaluation,
 )
 
@@ -148,13 +149,21 @@ def run_rag_turn(retriever, prompt, llm, query: str, model_name: str):
 
 def render_eval_expander(eval_result: dict):
     """Render per-response RAG evaluation metrics inside an expander."""
-    with st.expander("📊 RAG Evaluation Metrics"):
-        col1, col2, col3, col4 = st.columns(4)
+    with st.expander("📊 RAG Evaluation Metrics (0/1 & MRR)", expanded=True):
+        c1, c2, c3 = st.columns(3)
+        hit = eval_result.get("hit_rate_at_k")
+        mrr = eval_result.get("mrr")
         groundedness = eval_result.get("groundedness")
-        col1.metric("Groundedness", f"{groundedness:.2f}" if groundedness is not None else "N/A")
-        col2.metric("Refusal", "Yes" if eval_result.get("refusal") else "No")
-        col3.metric("Delay", f"{eval_result.get('delay_seconds', 0.0):.2f}s")
-        col4.metric("Est. Cost", f"${eval_result.get('cost', 0.0):.6f}")
+        c1.metric("Hit Rate @ 3 (0/1)", str(hit) if hit is not None else "N/A")
+        c2.metric("MRR", f"{mrr:.2f}" if mrr is not None else "N/A")
+        c3.metric("Groundedness (0/1)", str(groundedness) if groundedness is not None else "N/A")
+
+        c4, c5, c6, c7 = st.columns(4)
+        correctness = eval_result.get("correctness")
+        c4.metric("Correctness (0/1)", str(correctness) if correctness is not None else "N/A")
+        c5.metric("Refusal (0/1)", str(eval_result.get("refusal", 0)))
+        c6.metric("Delay", f"{eval_result.get('delay_seconds', 0.0):.2f}s")
+        c7.metric("Est. Cost", f"${eval_result.get('cost', 0.0):.6f}")
 
         if eval_result.get("judge_reason"):
             st.caption(f"**Judge Reason:** {eval_result['judge_reason']}")
@@ -190,18 +199,32 @@ with st.sidebar:
     )
     eval_model_choice = st.selectbox("Judge Model", EVAL_MODEL_OPTIONS, index=0)
     eval_model = model_name if eval_model_choice == "Same as Chat Model" else eval_model_choice
+    session_metrics_slot = st.empty()
 
-    if st.session_state.eval_results:
-        summary = calculate_summary(st.session_state.eval_results)
+
+def render_sidebar_session_metrics():
+    """Render live session evaluation summary in the sidebar."""
+    if not st.session_state.eval_results:
+        return
+    summary = calculate_summary(st.session_state.eval_results)
+    h_avg = summary["Hit Rate at K"]
+    m_avg = summary["MRR"]
+    g_avg = summary["Groundedness"]
+    with session_metrics_slot.container():
         st.markdown("**Session Metrics**")
-        g_avg = summary["Groundedness"]
         st.caption(
             f"Turns: {summary['Total Questions']} | "
+            f"Hit Rate: {f'{h_avg:.2f}' if h_avg is not None else 'N/A'} | "
+            f"MRR: {f'{m_avg:.2f}' if m_avg is not None else 'N/A'} | "
             f"Groundedness: {f'{g_avg:.2f}' if g_avg is not None else 'N/A'} | "
-            f"Refusal Rate: {summary['Refusal Rate']:.0%} | "
-            f"Avg Delay: {summary['Average Delay (seconds)']:.2f}s"
+            f"Refusal: {summary['Refusal Rate']:.0%} | "
+            f"Delay: {summary['Average Delay (seconds)']:.2f}s"
         )
 
+
+render_sidebar_session_metrics()
+
+with st.sidebar:
     st.markdown("---")
     st.subheader("System Status")
     if os.path.exists(DB_DIR):
@@ -269,20 +292,25 @@ def handle_query(user_query: str):
 
                 eval_result = None
                 try:
+                    matched_case = lookup_benchmark_case(user_query)
                     eval_result = evaluate_question(
                         question=user_query,
                         retrieved_docs=docs,
                         answer=answer,
-                        relevant_doc_ids=None,
-                        reference_answer=None,
+                        relevant_doc_ids=matched_case.get("relevant_doc_ids") if matched_case else None,
+                        reference_answer=matched_case.get("reference_answer") if matched_case else None,
                         k=3,
                         cost=cost,
                         delay=delay,
                         api_key=api_key,
                         model=eval_model,
                         run_judge=enable_live_eval,
+                        infer_relevant_from_judge=(
+                            matched_case is None or matched_case.get("relevant_doc_ids") is None
+                        ),
                     )
                     st.session_state.eval_results.append(eval_result)
+                    render_sidebar_session_metrics()
                     render_eval_expander(eval_result)
                 except Exception as eval_exc:
                     st.caption(f"⚠️ Evaluation skipped: {eval_exc}")
