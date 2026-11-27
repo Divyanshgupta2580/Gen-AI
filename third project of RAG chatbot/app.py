@@ -24,6 +24,7 @@ from evaluator import (
     evaluate_question,
     extract_token_cost,
     lookup_benchmark_case,
+    resolve_api_key,
     run_benchmark_evaluation,
 )
 
@@ -120,15 +121,14 @@ Guidelines:
 2. Cite the exact Policy Number (e.g., Policy 02.01) and Section name whenever available.
 3. If the context does not contain the information, state that clearly instead of speculating.""")
 
-    llm = (
-        ChatGoogleGenerativeAI(
+    llm = None
+    valid_key = resolve_api_key(api_key)
+    if valid_key:
+        llm = ChatGoogleGenerativeAI(
             model=model_name,
-            google_api_key=api_key,
+            google_api_key=valid_key,
             temperature=0.1
         )
-        if api_key
-        else None
-    )
 
     return retriever, prompt, llm
 
@@ -251,8 +251,8 @@ st.markdown("<div class='sub-header'>Instant, verified answers grounded in the o
 
 # Function to process user question
 def handle_query(user_query: str):
-    if not api_key:
-        st.warning("Please enter your Gemini API Key in the sidebar to ask questions.")
+    if not resolve_api_key(api_key):
+        st.warning("Please enter a valid Gemini API Key (must start with 'AIza...') in the sidebar to ask questions.")
         return
     if not os.path.exists(DB_DIR):
         st.error(f"Local Chroma DB not found at '{DB_DIR}'. Run `python rag_pdf.py` first to build the index.")
@@ -378,8 +378,8 @@ else:
         )
 
     if st.button("🚀 Run Full Benchmark Evaluation", type="primary"):
-        if not api_key:
-            st.warning("Please enter your Gemini API Key in the sidebar first.")
+        if not resolve_api_key(api_key):
+            st.warning("Please enter a valid Gemini API Key (must start with 'AIza...') in the sidebar first.")
         elif not os.path.exists(DB_DIR):
             st.error(f"Local Chroma DB not found at '{DB_DIR}'. Run `python rag_pdf.py` first to build the index.")
         else:

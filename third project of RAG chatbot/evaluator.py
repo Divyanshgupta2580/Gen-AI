@@ -28,9 +28,22 @@ _CLIENT_CACHE: dict[str, genai.Client] = {}
 
 
 def resolve_api_key(api_key: str | None = None) -> str | None:
-    """Resolve a Gemini API key from an explicit argument or environment variables."""
-    key = (api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
-    return key or None
+    """Resolve a Gemini API key from an explicit argument or environment variables.
+    Returns None if the key is missing or looks malformed (must start with 'AIza').
+    """
+    key = (api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or "").strip()
+    if not key:
+        return None
+    # Gemini API keys always start with "AIza"; warn and reject other strings
+    if not key.startswith("AIza"):
+        import warnings
+        warnings.warn(
+            f"Gemini API key looks invalid (expected 'AIza...' prefix, got '{key[:6]}...'). "
+            "Get a valid key at https://aistudio.google.com/",
+            stacklevel=2,
+        )
+        return None
+    return key
 
 
 def resolve_eval_model(model: str | None = None) -> str:
@@ -349,16 +362,25 @@ def evaluate_question(
     # Refusal metric
     refusal = detect_refusal(answer) if was_refused is None else bool(was_refused)
 
-    # LLM evaluation
+    # LLM evaluation — graceful fallback when no API key is available
     if run_judge:
-        judged = llm_judge(
-            question,
-            context,
-            answer,
-            reference_answer,
-            api_key=api_key,
-            model=model,
-        )
+        effective_key = resolve_api_key(api_key)
+        if effective_key:
+            judged = llm_judge(
+                question,
+                context,
+                answer,
+                reference_answer,
+                api_key=effective_key,
+                model=model,
+            )
+        else:
+            judged = {
+                "groundedness": None,
+                "correctness": None,
+                "relevant_doc_ids": [],
+                "reason": "No valid API key — LLM judge skipped. Add a valid key (AIza...) to .env or the sidebar.",
+            }
     else:
         judged = {
             "groundedness": None,
