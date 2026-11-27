@@ -65,7 +65,7 @@ flowchart TD
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Divyanshgupta2580/Gen-AI-3rd-Rag-Chatbot.git
+git clone https://github.com/Divyanshgupta2580/Gen-AI.git
 cd Gen-AI-3rd-Rag-Chatbot
 ```
 
@@ -147,3 +147,4 @@ Or switch to **📊 Evaluation Suite** in the Streamlit sidebar (`streamlit run 
 
 ## 📜 License
 MIT License. Created for Gen AI RAG coursework.
+# Gen-AI-P5

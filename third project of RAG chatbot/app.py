@@ -23,8 +23,6 @@ from evaluator import (
     calculate_summary,
     evaluate_question,
     extract_token_cost,
-    lookup_benchmark_case,
-    resolve_api_key,
     run_benchmark_evaluation,
 )
 
@@ -121,14 +119,15 @@ Guidelines:
 2. Cite the exact Policy Number (e.g., Policy 02.01) and Section name whenever available.
 3. If the context does not contain the information, state that clearly instead of speculating.""")
 
-    llm = None
-    valid_key = resolve_api_key(api_key)
-    if valid_key:
-        llm = ChatGoogleGenerativeAI(
+    llm = (
+        ChatGoogleGenerativeAI(
             model=model_name,
-            google_api_key=valid_key,
+            google_api_key=api_key,
             temperature=0.1
         )
+        if api_key
+        else None
+    )
 
     return retriever, prompt, llm
 
@@ -149,21 +148,13 @@ def run_rag_turn(retriever, prompt, llm, query: str, model_name: str):
 
 def render_eval_expander(eval_result: dict):
     """Render per-response RAG evaluation metrics inside an expander."""
-    with st.expander("📊 RAG Evaluation Metrics (0/1 & MRR)", expanded=True):
-        c1, c2, c3 = st.columns(3)
-        hit = eval_result.get("hit_rate_at_k")
-        mrr = eval_result.get("mrr")
+    with st.expander("📊 RAG Evaluation Metrics"):
+        col1, col2, col3, col4 = st.columns(4)
         groundedness = eval_result.get("groundedness")
-        c1.metric("Hit Rate @ 3 (0/1)", str(hit) if hit is not None else "N/A")
-        c2.metric("MRR", f"{mrr:.2f}" if mrr is not None else "N/A")
-        c3.metric("Groundedness (0/1)", str(groundedness) if groundedness is not None else "N/A")
-
-        c4, c5, c6, c7 = st.columns(4)
-        correctness = eval_result.get("correctness")
-        c4.metric("Correctness (0/1)", str(correctness) if correctness is not None else "N/A")
-        c5.metric("Refusal (0/1)", str(eval_result.get("refusal", 0)))
-        c6.metric("Delay", f"{eval_result.get('delay_seconds', 0.0):.2f}s")
-        c7.metric("Est. Cost", f"${eval_result.get('cost', 0.0):.6f}")
+        col1.metric("Groundedness", f"{groundedness:.2f}" if groundedness is not None else "N/A")
+        col2.metric("Refusal", "Yes" if eval_result.get("refusal") else "No")
+        col3.metric("Delay", f"{eval_result.get('delay_seconds', 0.0):.2f}s")
+        col4.metric("Est. Cost", f"${eval_result.get('cost', 0.0):.6f}")
 
         if eval_result.get("judge_reason"):
             st.caption(f"**Judge Reason:** {eval_result['judge_reason']}")
@@ -199,32 +190,18 @@ with st.sidebar:
     )
     eval_model_choice = st.selectbox("Judge Model", EVAL_MODEL_OPTIONS, index=0)
     eval_model = model_name if eval_model_choice == "Same as Chat Model" else eval_model_choice
-    session_metrics_slot = st.empty()
 
-
-def render_sidebar_session_metrics():
-    """Render live session evaluation summary in the sidebar."""
-    if not st.session_state.eval_results:
-        return
-    summary = calculate_summary(st.session_state.eval_results)
-    h_avg = summary["Hit Rate at K"]
-    m_avg = summary["MRR"]
-    g_avg = summary["Groundedness"]
-    with session_metrics_slot.container():
+    if st.session_state.eval_results:
+        summary = calculate_summary(st.session_state.eval_results)
         st.markdown("**Session Metrics**")
+        g_avg = summary["Groundedness"]
         st.caption(
             f"Turns: {summary['Total Questions']} | "
-            f"Hit Rate: {f'{h_avg:.2f}' if h_avg is not None else 'N/A'} | "
-            f"MRR: {f'{m_avg:.2f}' if m_avg is not None else 'N/A'} | "
             f"Groundedness: {f'{g_avg:.2f}' if g_avg is not None else 'N/A'} | "
-            f"Refusal: {summary['Refusal Rate']:.0%} | "
-            f"Delay: {summary['Average Delay (seconds)']:.2f}s"
+            f"Refusal Rate: {summary['Refusal Rate']:.0%} | "
+            f"Avg Delay: {summary['Average Delay (seconds)']:.2f}s"
         )
 
-
-render_sidebar_session_metrics()
-
-with st.sidebar:
     st.markdown("---")
     st.subheader("System Status")
     if os.path.exists(DB_DIR):
@@ -251,8 +228,8 @@ st.markdown("<div class='sub-header'>Instant, verified answers grounded in the o
 
 # Function to process user question
 def handle_query(user_query: str):
-    if not resolve_api_key(api_key):
-        st.warning("Please enter a valid Gemini API Key (must start with 'AIza...') in the sidebar to ask questions.")
+    if not api_key:
+        st.warning("Please enter your Gemini API Key in the sidebar to ask questions.")
         return
     if not os.path.exists(DB_DIR):
         st.error(f"Local Chroma DB not found at '{DB_DIR}'. Run `python rag_pdf.py` first to build the index.")
@@ -292,25 +269,20 @@ def handle_query(user_query: str):
 
                 eval_result = None
                 try:
-                    matched_case = lookup_benchmark_case(user_query)
                     eval_result = evaluate_question(
                         question=user_query,
                         retrieved_docs=docs,
                         answer=answer,
-                        relevant_doc_ids=matched_case.get("relevant_doc_ids") if matched_case else None,
-                        reference_answer=matched_case.get("reference_answer") if matched_case else None,
+                        relevant_doc_ids=None,
+                        reference_answer=None,
                         k=3,
                         cost=cost,
                         delay=delay,
                         api_key=api_key,
                         model=eval_model,
                         run_judge=enable_live_eval,
-                        infer_relevant_from_judge=(
-                            matched_case is None or matched_case.get("relevant_doc_ids") is None
-                        ),
                     )
                     st.session_state.eval_results.append(eval_result)
-                    render_sidebar_session_metrics()
                     render_eval_expander(eval_result)
                 except Exception as eval_exc:
                     st.caption(f"⚠️ Evaluation skipped: {eval_exc}")
@@ -378,8 +350,8 @@ else:
         )
 
     if st.button("🚀 Run Full Benchmark Evaluation", type="primary"):
-        if not resolve_api_key(api_key):
-            st.warning("Please enter a valid Gemini API Key (must start with 'AIza...') in the sidebar first.")
+        if not api_key:
+            st.warning("Please enter your Gemini API Key in the sidebar first.")
         elif not os.path.exists(DB_DIR):
             st.error(f"Local Chroma DB not found at '{DB_DIR}'. Run `python rag_pdf.py` first to build the index.")
         else:
